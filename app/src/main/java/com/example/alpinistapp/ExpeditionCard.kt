@@ -41,7 +41,7 @@ fun ExpeditionCard(
         Row (
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
+                .height(140.dp)
         ) {
             Image(
                 painter = painterResource(id = imageRes),

@@ -20,10 +20,14 @@ import androidx.navigation.NavController
 
 val expeditions = listOf(
     Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
+    Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl),
+    Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
+    Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl),
+    Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
     Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl)
 )
 
-@Preview
+//@Preview
 @Composable
 fun HomeScreen(
     navController: NavController
@@ -79,5 +83,7 @@ fun HomeScreen(
             }
 
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
