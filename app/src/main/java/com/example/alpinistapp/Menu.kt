@@ -38,13 +38,15 @@ fun ExpandableFab(navController: NavController) {
 
     var expanded by remember { mutableStateOf(false) }
 
-    val items = listOf(
-        Icons.Default.Settings,
-        Icons.Default.Person,
-        Icons.Default.Search,
-        Icons.Default.Terrain,
-        Icons.Default.Home
-        )
+
+    val item = listOf(
+        FabItem(Icons.Default.Settings, "settings"),
+        FabItem(Icons.Default.Person, "profile"),
+        FabItem(Icons.Default.Search, "search"),
+        FabItem(Icons.Default.Terrain, "expedition"),
+        FabItem(Icons.Default.Home, "home"),
+
+    )
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -52,7 +54,7 @@ fun ExpandableFab(navController: NavController) {
     ) {
         val radius = 240f
 
-        items.forEachIndexed { index, icon ->
+        item.forEachIndexed { index, fabItem ->
 
             val angle = Math.toRadians((index * 22).toDouble())
 
@@ -76,8 +78,11 @@ fun ExpandableFab(navController: NavController) {
 
             if(expanded){
                 GradientFab(
-                    icon = icon,
-                    onClick = {},
+                    icon = fabItem.icon,
+                    onClick = {
+                        navController.navigate(fabItem.route)
+                        expanded = false
+                              },
                     modifier = Modifier
                         .offset(x = offsetX, y = offsetY)
                         .alpha(alpha),
