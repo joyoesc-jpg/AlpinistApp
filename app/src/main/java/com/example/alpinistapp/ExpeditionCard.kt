@@ -1,8 +1,9 @@
 package com.example.alpinistapp
 
+import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,22 +24,31 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.navigation.NavController
 
 @Composable
 fun ExpeditionCard(
     title: String,
     date: String,
-    imageRes: Int
-){
+    imageRes: Int,
+    expedition: Expedition,
+    navController: NavController
+) {
+    // We encode the strings to ensure they are valid for the navigation URI (handles spaces and special characters)
+    val encodedTitle = Uri.encode(expedition.title)
+    val encodedDate = Uri.encode(expedition.date)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable {
+                navController.navigate("detail/$encodedTitle/$encodedDate/${expedition.imageRes}")
+            },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ){
-        Row (
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(140.dp)
@@ -55,10 +65,10 @@ fun ExpeditionCard(
 
             Column(
                 modifier = Modifier
-                    .padding(end=8.dp, start = 8.dp)
+                    .padding(end = 8.dp, start = 8.dp)
                     .fillMaxWidth()
                     .fillMaxHeight()
-            ){
+            ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
@@ -79,7 +89,9 @@ fun ExpeditionCard(
 
                 GradientButton(
                     text = "Más Información",
-                    onClick = { /* TODO */ }
+                    onClick = {
+                        navController.navigate("detail/$encodedTitle/$encodedDate/${expedition.imageRes}")
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))

@@ -31,15 +31,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val currentRoute = currentRoute(navController)
+    val currentRouteName = currentRoute(navController)
 
-    Scaffold(
-        floatingActionButton = {
-            if (currentRoute != "login" && currentRoute != "register") {
-                ExpandableFab(navController)
-            }
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = "login",
@@ -48,6 +42,18 @@ fun AppNavigation() {
             composable("login") { LoginScreen(navController) }
             composable("register") { RegisterScreen(navController) }
             composable("home") { HomeScreen(navController) }
+
+            composable("detail/{title}/{date}/{imageRes}") { backStackEntry ->
+                val title = backStackEntry.arguments?.getString("title") ?: ""
+                val date = backStackEntry.arguments?.getString("date") ?: ""
+                val imageRes = backStackEntry.arguments?.getString("imageRes")?.toIntOrNull() ?: 0
+
+                ExpeditionScreen(title, date, imageRes)
+            }
+        }
+
+        if (currentRouteName != "login" && currentRouteName != "register") {
+            ExpandableFab(navController)
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 val expeditions = listOf(
     Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
@@ -27,7 +28,6 @@ val expeditions = listOf(
     Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl)
 )
 
-//@Preview
 @Composable
 fun HomeScreen(
     navController: NavController
@@ -37,10 +37,11 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color(0xF2F2F2F2))
     ){
+        // Welcome Header Section
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
+                .height(120.dp)
                 .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
                 .background(
                     Brush.verticalGradient(
@@ -61,6 +62,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(22.dp)
             )
         }
+        
         Spacer(modifier = Modifier.height(26.dp))
 
         Text(
@@ -78,12 +80,20 @@ fun HomeScreen(
                 ExpeditionCard(
                     title = exp.title,
                     date = exp.date,
-                    imageRes = exp.imageRes
+                    imageRes = exp.imageRes,
+                    expedition = exp,
+                    navController = navController
                 )
             }
-
         }
 
         Spacer(modifier = Modifier.height(32.dp))
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HomeScreenPreview() {
+    val navController = rememberNavController()
+    HomeScreen(navController = navController)
 }

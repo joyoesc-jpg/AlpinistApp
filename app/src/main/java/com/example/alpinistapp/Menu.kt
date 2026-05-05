@@ -1,13 +1,17 @@
 package com.example.alpinistapp
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -28,10 +32,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun ExpandableFab(navController: NavController) {
@@ -48,54 +55,89 @@ fun ExpandableFab(navController: NavController) {
 
     )
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomEnd
-    ) {
-        val radius = 240f
+    val alphaBg by animateFloatAsState(
+        targetValue = if (expanded) 0.5f else 0f,
+        animationSpec = tween(300),
+        label = ""
+    )
 
-        item.forEachIndexed { index, fabItem ->
-
-            val angle = Math.toRadians((index * 22).toDouble())
-
-            val y = (radius * Math.sin(angle)).dp
-            val x = (radius * Math.cos(angle)).dp
-
-            val alpha by animateFloatAsState(
-                targetValue = if (expanded) 1f else 0f,
-                label = ""
-            )
-
-            val offsetX by animateDpAsState(
-                targetValue = if (expanded) -x else 0.dp,
-                label = ""
-            )
-            val offsetY by animateDpAsState(
-                targetValue = if (expanded) -y else 0.dp,
-                label = ""
-            )
-
-
-            if(expanded){
-                GradientFab(
-                    icon = fabItem.icon,
-                    onClick = {
-                        navController.navigate(fabItem.route)
-                        expanded = false
-                              },
-                    modifier = Modifier
-                        .offset(x = offsetX, y = offsetY)
-                        .alpha(alpha),
-                    isItBlue = false
-                )
-            }
-        }
-        GradientFab(
-            icon = if (expanded) Icons.Default.Close else Icons.Default.Menu,
-            onClick = { expanded = !expanded },
-            isItBlue = if (expanded) true else false
+    if(alphaBg > 0f){
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = alphaBg))
+                .clickable { expanded = false }
         )
+    }
 
+    Box (
+        modifier = Modifier.fillMaxSize()
+    ){
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 64.dp, end = 32.dp),
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+
+
+            val radius = 240f
+
+            item.forEachIndexed { index, fabItem ->
+
+                val angle = Math.toRadians((index * 22).toDouble())
+
+                val y = (radius * sin(angle)).dp
+                val x = (radius * cos(angle)).dp
+
+                val alpha by animateFloatAsState(
+                    targetValue = if (expanded) 1f else 0f,
+                    label = ""
+                )
+
+                val offsetX by animateDpAsState(
+                    targetValue = if (expanded) -x else 0.dp,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    label = ""
+                )
+                val offsetY by animateDpAsState(
+                    targetValue = if (expanded) -y else 0.dp,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    label = ""
+                )
+
+
+                if (expanded) {
+                    GradientFab(
+                        icon = fabItem.icon,
+                        onClick = {
+                            navController.navigate(fabItem.route)
+                            expanded = false
+                        },
+                        modifier = Modifier
+                            .offset(x = offsetX, y = offsetY)
+                            .alpha(alpha),
+                        isItBlue = false
+                    )
+                }
+            }
+            GradientFab(
+                icon = if (expanded) Icons.Default.Close else Icons.Default.Menu,
+                onClick = { expanded = !expanded },
+                isItBlue = if (expanded) true else false,
+                modifier = Modifier.shadow(
+                    elevation = 16.dp,
+                    shape = CircleShape,
+                    clip = false
+                )
+            )
+        }
     }
 }
 
@@ -113,13 +155,13 @@ fun GradientFab(
             .clip(CircleShape)
             .background(
                 Brush.linearGradient(
-                    if(isItBlue){
+                    if (isItBlue) {
                         listOf(
                             Color(0xFF173963),
                             Color(0xFF175294),
                             Color(0xFF17635D)
                         )
-                    } else{
+                    } else {
                         listOf(
                             Color(0xffff6e3d),
                             Color(0xffff9b3d),
