@@ -37,7 +37,6 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color(0xF2F2F2F2))
     ){
-        // Welcome Header Section
         Box(
             modifier = Modifier
                 .fillMaxWidth()

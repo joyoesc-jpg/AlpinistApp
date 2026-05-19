@@ -1,26 +1,20 @@
 package com.example.alpinistapp
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -28,109 +22,134 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.navigation.NavController
 
 @Composable
 fun ExpeditionScreen(
     title: String,
     date: String,
-    imageRes: Int
-){
+    imageRes: Int,
+    navController: NavController
+) {
+
     val listState = rememberLazyListState()
 
-    Box{
-        LazyColumn(
-            state = listState
-        ) {
-            item{
-                Image(
-                    painter = painterResource(id = imageRes),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                )
-            }
+    val maxHeight = 260.dp
+    val minHeight = 90.dp
 
-            item {
-                DetailContent(title, date)
-            }
-        }
+    val collapseFraction = (
+            listState.firstVisibleItemScrollOffset / 600f
+            ).coerceIn(0f, 1f)
 
-        CollapsingHeader(
-            title = title,
-            date = date,
-            listState = listState
-        )
-    }
-}
+    val animatedHeight by animateDpAsState(
+        targetValue = lerp(maxHeight, minHeight, collapseFraction),
+        label = ""
+    )
 
-@Composable
-fun CollapsingHeader (
-    title: String,
-    date: String,
-    listState: LazyListState
-){
-    val showHeader = listState.firstVisibleItemIndex > 0
-
-    AnimatedVisibility(visible = showHeader){
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF173963),
-                            Color(0xFF175294),
-                            Color(0xFF17635D)
-                        )
-                    )
-                )
-                .padding(16.dp)
-        ){
-            Column{
-                Text(text = title, color = Color.White, fontSize = 18.sp)
-                Text(text = date, color = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-fun DetailContent(title: String, date: String) {
-
-    Column(
+    Box (
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xFF1F4A7C),
-                        Color(0xFF1F6A6D)
+                        Color(0xFF173963),
+                        Color(0xFF175294),
+                        Color(0xFF17635D)
                     )
                 )
             )
+    ) {
+
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(bottom = 100.dp)
+        ) {
+
+            item {
+                Box {
+
+                    Image(
+                        painter = painterResource(id = imageRes),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(animatedHeight)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = date,
+                            color = Color.White
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .size(42.dp)
+                            .background(Color(0xFFFFA726), CircleShape)
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null)
+                    }
+                }
+            }
+
+            item {
+                DetailContent(listState, title, date)
+            }
+        }
+    }
+}
+
+data class Participant(val name: String, val username: String)
+
+val participantsList = listOf(
+    Participant("Alfonso Obregon", "AlfOber12"),
+    Participant("Rogelio Juarez", "Roger"),
+    Participant("Catalina Lopez", "Cathy"),
+    Participant("Alfonso Obregon", "AlfOber12"),
+    Participant("Rogelio Juarez", "Roger"),
+    Participant("Catalina Lopez", "Cathy")
+)
+
+@Composable
+fun DetailContent(listState: LazyListState, title: String, date: String) {
+
+    Column(
+        modifier = Modifier
+            .offset(y = (-16).dp)
             .padding(16.dp)
     ) {
 
-        Text(
-            text = title,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
 
-        Text(text = date, color = Color.White)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        GradientButton("Información del sendero", {})
+        GradientButton("Información del sendero") {}
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        GradientButton("Chat", {})
+        GradientButton("Chat") {}
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -140,9 +159,20 @@ fun DetailContent(title: String, date: String) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        ParticipantCard("Alfonso Obregon", "AlfOber12")
-        ParticipantCard("Rogelio Juarez", "Roger")
-        ParticipantCard("Catalina Lopez", "Cathy")
+        LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+            items(participantsList) { participant ->
+                ParticipantCard(participant.name, participant.username)
+            }
+        }
+
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        HorizontalDivider(color = Color.White)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        GradientButton("Salir de la expedición") {}
     }
 }
 
@@ -153,6 +183,7 @@ fun ParticipantCard(name: String, user: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
+            .shadow(6.dp, RoundedCornerShape(50))
             .background(Color.White, RoundedCornerShape(50))
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically

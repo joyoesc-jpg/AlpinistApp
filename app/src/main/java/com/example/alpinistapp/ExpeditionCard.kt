@@ -34,7 +34,6 @@ fun ExpeditionCard(
     expedition: Expedition,
     navController: NavController
 ) {
-    // We encode the strings to ensure they are valid for the navigation URI (handles spaces and special characters)
     val encodedTitle = Uri.encode(expedition.title)
     val encodedDate = Uri.encode(expedition.date)
 
@@ -43,7 +42,7 @@ fun ExpeditionCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable {
-                navController.navigate("detail/$encodedTitle/$encodedDate/${expedition.imageRes}")
+                navController.navigate("expedition_detail/$encodedTitle/$encodedDate/${expedition.imageRes}")
             },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
@@ -90,7 +89,7 @@ fun ExpeditionCard(
                 GradientButton(
                     text = "Más Información",
                     onClick = {
-                        navController.navigate("detail/$encodedTitle/$encodedDate/${expedition.imageRes}")
+                        navController.navigate("expedition_detail/$encodedTitle/$encodedDate/${expedition.imageRes}")
                     }
                 )
 

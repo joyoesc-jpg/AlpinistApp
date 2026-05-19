@@ -10,10 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.alpinistapp.ui.theme.AlpinistAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,13 +44,39 @@ fun AppNavigation() {
             composable("login") { LoginScreen(navController) }
             composable("register") { RegisterScreen(navController) }
             composable("home") { HomeScreen(navController) }
+            composable("search") { SearchTrailsScreen(navController) }
+            composable("profile") { ProfileScreen(navController) }
 
-            composable("detail/{title}/{date}/{imageRes}") { backStackEntry ->
+            // Trail details route
+            composable(
+                route = "detail/{title}/{location}/{imageRes}",
+                arguments = listOf(
+                    navArgument("title") { type = NavType.StringType },
+                    navArgument("location") { type = NavType.StringType },
+                    navArgument("imageRes") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val title = backStackEntry.arguments?.getString("title") ?: ""
+                val location = backStackEntry.arguments?.getString("location") ?: ""
+                val imageRes = backStackEntry.arguments?.getInt("imageRes") ?: 0
+
+                TrailScreen(title, location, imageRes, navController)
+            }
+
+            // Expedition details route
+            composable(
+                route = "expedition_detail/{title}/{date}/{imageRes}",
+                arguments = listOf(
+                    navArgument("title") { type = NavType.StringType },
+                    navArgument("date") { type = NavType.StringType },
+                    navArgument("imageRes") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
                 val title = backStackEntry.arguments?.getString("title") ?: ""
                 val date = backStackEntry.arguments?.getString("date") ?: ""
-                val imageRes = backStackEntry.arguments?.getString("imageRes")?.toIntOrNull() ?: 0
+                val imageRes = backStackEntry.arguments?.getInt("imageRes") ?: 0
 
-                ExpeditionScreen(title, date, imageRes)
+                ExpeditionScreen(title, date, imageRes, navController)
             }
         }
 
