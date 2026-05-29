@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<gpx version="1.1">
+
+    <trk>
+        <name>Subida Cubilete</name>
+
+        <trkseg>
+
+            <!-- Base -->
+
+            <trkpt lat="20.9945" lon="-101.3875"/>
+            <trkpt lat="20.9960" lon="-101.3850"/>
+            <trkpt lat="20.9975" lon="-101.3820"/>
+
+            <!-- Ascenso -->
+
+            <trkpt lat="20.9990" lon="-101.3790"/>
+            <trkpt lat="21.0010" lon="-101.3760"/>
+            <trkpt lat="21.0030" lon="-101.3735"/>
+
+            <!-- Curvas -->
+
+            <trkpt lat="21.0050" lon="-101.3715"/>
+            <trkpt lat="21.0070" lon="-101.3705"/>
+            <trkpt lat="21.0090" lon="-101.3698"/>
+
+            <!-- Cristo Rey -->
+
+            <trkpt lat="21.0119" lon="-101.3689"/>
+
+        </trkseg>
+    </trk>
+
+</gpx>

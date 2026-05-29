@@ -58,4 +58,9 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("com.mapbox.maps:android-ndk27:11.24.3")
+    implementation("com.mapbox.extension:maps-compose-ndk27:11.24.3")
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3")
 }

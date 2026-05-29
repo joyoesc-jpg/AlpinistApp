@@ -46,6 +46,8 @@ fun AppNavigation() {
             composable("home") { HomeScreen(navController) }
             composable("search") { SearchTrailsScreen(navController) }
             composable("profile") { ProfileScreen(navController) }
+            composable("expedition") { ActiveExpedition(navController) }
+
 
             // Trail details route
             composable(
