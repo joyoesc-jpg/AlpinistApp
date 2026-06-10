@@ -115,7 +115,7 @@ fun ExpeditionScreen(
             }
 
             item {
-                DetailContent(listState, title, date)
+                DetailContent(listState, title, date, imageRes, navController)
             }
         }
     }
@@ -133,7 +133,13 @@ val participantsList = listOf(
 )
 
 @Composable
-fun DetailContent(listState: LazyListState, title: String, date: String) {
+fun DetailContent(
+    listState: LazyListState,
+    title: String,
+    date: String,
+    imageRes: Int,
+    navController: NavController
+) {
 
     Column(
         modifier = Modifier
@@ -141,11 +147,11 @@ fun DetailContent(listState: LazyListState, title: String, date: String) {
             .padding(16.dp)
     ) {
 
-
-
         Spacer(modifier = Modifier.height(20.dp))
 
-        GradientButton("Información del sendero") {}
+        GradientButton("Información del sendero") {
+            navController.navigate("detail/$title/México/$imageRes")
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 

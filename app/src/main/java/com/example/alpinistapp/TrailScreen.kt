@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,13 @@ import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+
+data class Review(
+    val author: String,
+    val rating: Int,
+    val comment: String,
+    val date: String
+)
 
 @Composable
 fun TrailScreen(
@@ -66,6 +74,12 @@ fun TrailScreen(
             creator = "Luis",
             joined = false
         )
+    )
+
+    val reviews = listOf(
+        Review("Juan Pérez", 5, "Increíble ruta, las vistas desde la cima son espectaculares. El sendero está bien marcado.", "Hace 2 días"),
+        Review("María García", 4, "Un poco demandante físicamente pero vale totalmente la pena. Recomiendo llevar mucha agua.", "Hace 1 semana"),
+        Review("Carlos Ruiz", 5, "Perfecto para un fin de semana de aventura. El clima estuvo excelente.", "Hace 2 semanas")
     )
 
     LazyColumn(
@@ -213,12 +227,90 @@ fun TrailScreen(
                     text = "Descargar mapa",
                     onClick = {}
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                HorizontalDivider(
+                    color = Color.White
+                )
+
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                Text(
+                    text = "Reseñas",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        items(reviews) { review ->
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                ReviewCard(review)
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
+
+@Composable
+fun ReviewCard(review: Review) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = review.author,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+            Text(
+                text = review.date,
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row {
+            repeat(5) { index ->
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = if (index < review.rating) Color(0xFFFFB400) else Color.LightGray,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = review.comment,
+            fontSize = 14.sp,
+            color = Color.DarkGray
+        )
+    }
+}
+
 @Composable
 fun ExpeditionInfoCard(
     date: String,
