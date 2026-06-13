@@ -32,10 +32,10 @@ fun ExpeditionScreen(
     title: String,
     date: String,
     imageUrl: String,
-    routeTitle: String,   // Viene de 'route' en la BD
-    location: String,     // Viene de 'location' en la BD
-    trailImage: String,   // Viene de 'image' en la BD
-    rating: Double,       // Viene de 'rating' en la BD (Double requerido por TrailScreen)
+    routeTitle: String,
+    location: String,
+    trailImage: String,
+    rating: Double,
     navController: NavController
 ) {
     val listState = rememberLazyListState()
@@ -114,23 +114,16 @@ fun DetailContent(
     ) {
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ✅ REDIRECCIÓN AJUSTADA A TU MAINACTIVITY Y BASE DE DATOS REAL
         GradientButton("Información del sendero") {
             val encodedRoute = Uri.encode(routeTitle)
             val encodedLocation = Uri.encode(location)
             val encodedImage = Uri.encode(trailImage)
-            val encodedDifficulty = Uri.encode("Media") // Fallback seguro para TrailScreen ya que mapeas ID en BD
-            val trailRating = rating.toFloat()           // Ajustado al Float que espera tu ruta "detail/"
+            val encodedDifficulty = Uri.encode("Media")
+            val trailRating = rating.toFloat()
 
-            // Dispara exactamente el destino de tu TrailScreen
             navController.navigate("detail/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/$trailRating")
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        GradientButton("Chat") {
-            navController.navigate("chat_screen")
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
         Text("Personas:", color = Color.White)
@@ -157,6 +150,9 @@ fun DetailContent(
 
 data class Participant(val name: String, val username: String)
 val participantsList = listOf(
+    Participant("Alfonso Obregon", "AlfOber12"),
+    Participant("Rogelio Juarez", "Roger"),
+    Participant("Catalina Lopez", "Cathy"),
     Participant("Alfonso Obregon", "AlfOber12"),
     Participant("Rogelio Juarez", "Roger"),
     Participant("Catalina Lopez", "Cathy")

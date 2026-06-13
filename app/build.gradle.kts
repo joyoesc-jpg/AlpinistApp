@@ -61,4 +61,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.mapbox.maps:android:11.4.0")
+    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

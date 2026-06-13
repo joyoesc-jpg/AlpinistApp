@@ -25,18 +25,15 @@ import androidx.navigation.compose.rememberNavController
 fun HomeScreen(
     navController: NavController
 ){
-    // STEP 1: Crear las variables de estado que recordará la pantalla
     var expeditionsList by remember { mutableStateOf<List<Expedition>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // STEP 2: Lanzar la petición HTTP asíncrona a Render en cuanto cargue la pantalla
     LaunchedEffect(Unit) {
         try {
             isLoading = true
             errorMessage = null
 
-            // Llamamos a tu servicio web (asegúrate de tener 'getExpeditions()' en tu AlpinistApiService)
             val response = RetrofitClient.apiService.getExpeditions()
             expeditionsList = response
         } catch (e: Exception) {
@@ -46,13 +43,11 @@ fun HomeScreen(
         }
     }
 
-    // STEP 3: Maquetación visual de la interfaz
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xF2F2F2F2))
     ){
-        // Banner Superior con Degradado (Diseño Fijo Local)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,9 +83,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // STEP 4: Control de flujo dinámico según el estado de la red
         if (isLoading) {
-            // Muestra una ruedita de progreso centrada mientras descarga
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,7 +93,6 @@ fun HomeScreen(
                 CircularProgressIndicator(color = Color(0xFF175294))
             }
         } else if (errorMessage != null) {
-            // Muestra el mensaje de error si el servidor falló o no hay internet
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -116,13 +108,11 @@ fun HomeScreen(
                 )
             }
         } else {
-            // ¡Éxito! Dibuja la lista real con los datos dinámicos obtenidos
             LazyColumn (
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 items(expeditionsList) { exp ->
-                    // Invocamos la ExpeditionCard optimizada (Limpia de parámetros duplicados)
                     ExpeditionCard(
                         expedition = exp,
                         navController = navController

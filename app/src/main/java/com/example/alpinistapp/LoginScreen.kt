@@ -19,6 +19,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -37,10 +38,12 @@ fun LoginScreen(navController: NavController) {
     val passwordState = remember { mutableStateOf("") }
     val passwordVisible = remember { mutableStateOf(false) }
 
-    // Estados para controlar la petición de red
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+
+    val context = LocalContext.current
+    val userPreferences = remember { UserPreferences(context) }
 
     val passwordFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -86,7 +89,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Mostrar error si la API responde incorrectamente
             if (errorMessage != null) {
                 Text(
                     text = errorMessage!!,
@@ -153,6 +155,7 @@ fun LoginScreen(navController: NavController) {
                                         LoginRequest(emailState.value.trim(), passwordState.value)
                                     )
                                     if (response.success) {
+                                        userPreferences.saveLoginState(true)
                                         navController.navigate("home") {
                                             popUpTo("login") { inclusive = true }
                                         }

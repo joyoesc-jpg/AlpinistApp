@@ -38,7 +38,6 @@ fun ExpeditionCard(
             .fillMaxWidth()
             .padding(vertical = 8.dp) // Espaciado entre tarjetas
             .clickable {
-                // Navegamos pasando la URL de internet en lugar del ID local
                 navController.navigate(
                     "expedition_detail/$encodedTitle/$encodedDate/$encodedUrl?routeTitle=$encodedRoute&location=$encodedLocation&trailImage=$encodedTrailImage&rating=$trailRating"
                 )
@@ -52,7 +51,7 @@ fun ExpeditionCard(
                 .fillMaxWidth()
                 .height(140.dp)
         ) {
-            // CAMBIO CLAVE: Usamos AsyncImage de Coil en lugar del Image clásico
+
             AsyncImage(
                 model = expedition.imageUrl, // El link que viene de Render/Neon
                 contentDescription = "Imagen de la expedición",

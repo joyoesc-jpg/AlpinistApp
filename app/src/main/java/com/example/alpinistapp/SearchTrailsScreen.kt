@@ -26,12 +26,10 @@ import androidx.navigation.compose.rememberNavController
 fun SearchTrailsScreen(navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
 
-    // STEP 1: Variables de estado para la red
     var allTrails by remember { mutableStateOf<List<Trail>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // STEP 2: Traer los senderos reales desde tu API en Render
     LaunchedEffect(Unit) {
         try {
             isLoading = true
@@ -44,7 +42,6 @@ fun SearchTrailsScreen(navController: NavController) {
         }
     }
 
-    // STEP 3: Filtrado dinámico local usando 'routeTitle' (Actualizado)
     val filteredTrails = if (searchQuery.isEmpty()) {
         allTrails
     } else {
@@ -56,7 +53,7 @@ fun SearchTrailsScreen(navController: NavController) {
             .fillMaxSize()
             .background(Color(0xF2F2F2F2))
     ) {
-        // Header con Barra de Búsqueda
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,7 +99,6 @@ fun SearchTrailsScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // STEP 4: Control de flujo visual para la lista de resultados
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -128,7 +124,6 @@ fun SearchTrailsScreen(navController: NavController) {
                 )
             }
         } else {
-            // ÉXITO: Mostrar contador y la lista filtrada
             Text(
                 text = "Resultados (${filteredTrails.size})",
                 modifier = Modifier.padding(horizontal = 24.dp),

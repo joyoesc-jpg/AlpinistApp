@@ -8,16 +8,13 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
-// ==================== PETICIONES (Lo que envías a FastAPI) ====================
 data class LoginRequest(val email: String, val password: String)
 data class RegisterRequest(val name: String, val email: String, val password: String)
 
-// ==================== RESPUESTAS DE AUTENTICACIÓN ====================
 data class LoginResponse(val success: Boolean, val message: String, val user: UserNetworkData?)
 data class RegisterResponse(val success: Boolean, val message: String, val user: UserNetworkData?)
 data class UserNetworkData(val user_id: Int, val name: String, val email: String)
 
-// INTERFAZ DE COMUNICACIÓN CON FASTAPI
 interface AlpinistApiService {
     @GET("api/trails")
     suspend fun getTrails(): List<Trail>
@@ -33,11 +30,10 @@ interface AlpinistApiService {
     suspend fun register_user(@Body request: RegisterRequest): RegisterResponse
 }
 
-// CONFIGURACIÓN DEL CLIENTE RETROFIT
+
 object RetrofitClient {
     private const val BASE_URL = "https://alpinist-api.onrender.com/"
 
-    // Agregamos OkHttpClient para dar tiempo a Render de "despertar" de su estado de hibernación gratuito
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)

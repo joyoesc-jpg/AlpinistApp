@@ -17,10 +17,37 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.alpinistapp.ui.theme.AlpinistAppTheme
+import com.mapbox.common.TileStore
+import com.mapbox.bindgen.Value
+
+import android.content.Context
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+import com.mapbox.common.TileStoreOptions
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //MapboxOptions.accessToken = ""
+
+        val tileStore = TileStore.create()
+
+        val capacidadBytes = 200L * 1024L * 1024L
+
+        tileStore.setOption(
+            "disk-capacity",
+            Value(capacidadBytes) // <-- ENVOLVEMOS EL LONG DENTRO DE VALUE
+        )
+
         enableEdgeToEdge()
         setContent {
             AlpinistAppTheme {
@@ -35,8 +62,13 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val currentRouteName = currentRoute(navController)
 
+    val currentContext = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val userPreferences = remember { UserPreferences(currentContext) }
+    val loggedInState = userPreferences.isLoggedIn.collectAsState(initial = false)
+
     Scaffold(
-        // Movemos el FAB al slot oficial del Scaffold para un posicionamiento perfecto
         floatingActionButton = {
             if (currentRouteName != "login" && currentRouteName != "register") {
                 ExpandableFab(navController)
@@ -45,7 +77,7 @@ fun AppNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = if (loggedInState.value) "home" else "login",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("login") { LoginScreen(navController) }
@@ -53,8 +85,8 @@ fun AppNavigation() {
             composable("home") { HomeScreen(navController) }
             composable("search") { SearchTrailsScreen(navController) }
             composable("profile") { ProfileScreen(navController) }
+            composable("expedition") { ActiveExpedition(navController) }
 
-            // Ruta de detalles de Senderos (Nube - Neon / Render)
             composable(
                 route = "detail/{routeTitle}/{location}/{imageUrl}/{difficulty}/{rating}",
                 arguments = listOf(
@@ -75,8 +107,8 @@ fun AppNavigation() {
                     routeTitle = routeTitle,
                     location = location,
                     imageUrl = imageUrl,
-                    difficulty = difficulty,
-                    rating = rating,
+                    //difficulty = difficulty,
+                    //rating = rating,
                     navController = navController
                 )
             }
@@ -97,7 +129,6 @@ fun AppNavigation() {
                 val date = backStackEntry.arguments?.getString("date") ?: ""
                 val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
 
-                // Parámetros dinámicos del Trail mapeados desde la estructura de tu BD
                 val routeTitle = backStackEntry.arguments?.getString("routeTitle") ?: title
                 val location = backStackEntry.arguments?.getString("location") ?: "Ubicación"
                 val trailImage = backStackEntry.arguments?.getString("trailImage") ?: imageUrl
@@ -107,10 +138,10 @@ fun AppNavigation() {
                     title = title,
                     date = date,
                     imageUrl = imageUrl,
-                    routeTitle = routeTitle,   // Mapeado de 'route'
-                    location = location,       // Mapeado de 'location'
-                    trailImage = trailImage,   // Mapeado de 'image'
-                    rating = rating,           // Mapeado de 'rating'
+                    routeTitle = routeTitle,
+                    location = location,
+                    trailImage = trailImage,
+                    rating = rating,
                     navController = navController
                 )
             }
