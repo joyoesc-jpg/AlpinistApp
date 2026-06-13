@@ -113,19 +113,19 @@ fun ExpandableFab(navController: NavController) {
                 )
 
 
-                if (expanded) {
-                    GradientFab(
-                        icon = fabItem.icon,
-                        onClick = {
-                            navController.navigate(fabItem.route)
+                GradientFab(
+                    icon = fabItem.icon,
+                    onClick = {
+                        if (expanded) {
                             expanded = false
-                        },
-                        modifier = Modifier
-                            .offset(x = offsetX, y = offsetY)
-                            .alpha(alpha),
-                        isItBlue = false
-                    )
-                }
+                            navController.navigate(fabItem.route)
+                        }
+                    },
+                    modifier = Modifier
+                        .offset(x = offsetX, y = offsetY)
+                        .alpha(alpha),
+                    isItBlue = false
+                )
             }
             GradientFab(
                 icon = if (expanded) Icons.Default.Close else Icons.Default.Menu,

@@ -1,8 +1,8 @@
 package com.example.alpinistapp
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -20,69 +20,53 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 
 @Composable
 fun ExpeditionScreen(
     title: String,
     date: String,
-    imageRes: Int,
+    imageUrl: String,
+    routeTitle: String,
+    location: String,
+    trailImage: String,
+    rating: Double,
     navController: NavController
 ) {
-
     val listState = rememberLazyListState()
-
     val maxHeight = 260.dp
     val minHeight = 90.dp
 
-    val collapseFraction = (
-            listState.firstVisibleItemScrollOffset / 600f
-            ).coerceIn(0f, 1f)
+    val collapseFraction = (listState.firstVisibleItemScrollOffset / 600f).coerceIn(0f, 1f)
+    val animatedHeight by animateDpAsState(targetValue = lerp(maxHeight, minHeight, collapseFraction), label = "")
 
-    val animatedHeight by animateDpAsState(
-        targetValue = lerp(maxHeight, minHeight, collapseFraction),
-        label = ""
-    )
+    // API ENDPOINT: Fetch expedition details and participants list
+    // Example: val participants by produceState<List<Participant>>(initialValue = emptyList()) { value = RetrofitClient.apiService.getParticipants(expeditionId) }
+    val participants = remember { mutableStateListOf<Participant>() }
 
     Box (
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF173963),
-                        Color(0xFF175294),
-                        Color(0xFF17635D)
-                    )
-                )
-            )
+            .background(Brush.verticalGradient(listOf(Color(0xFF173963), Color(0xFF175294), Color(0xFF17635D))))
     ) {
-
         LazyColumn(
             state = listState,
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-
             item {
                 Box {
-
-                    Image(
-                        painter = painterResource(id = imageRes),
-                        contentDescription = null,
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = "Banner de la expedición $title",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(animatedHeight)
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
                     )
 
                     Column(
@@ -90,16 +74,8 @@ fun ExpeditionScreen(
                             .align(Alignment.BottomStart)
                             .padding(16.dp)
                     ) {
-                        Text(
-                            text = title,
-                            color = Color.White,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = date,
-                            color = Color.White
-                        )
+                        Text(text = title, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(text = date, color = Color.White)
                     }
 
                     IconButton(
@@ -115,7 +91,69 @@ fun ExpeditionScreen(
             }
 
             item {
-                DetailContent(listState, title, date, imageRes, navController)
+                DetailContent(
+                    routeTitle = routeTitle,
+                    location = location,
+                    trailImage = trailImage,
+                    rating = rating,
+                    participants = participants,
+                    navController = navController
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailContent(
+    routeTitle: String,
+    location: String,
+    trailImage: String,
+    rating: Double,
+    participants: List<Participant>,
+    navController: NavController
+) {
+    Column(
+        modifier = Modifier
+            .offset(y = (-16).dp)
+            .padding(16.dp)
+    ) {
+        Spacer(modifier = Modifier.height(20.dp))
+
+        GradientButton("Información del sendero") {
+            val encodedRoute = Uri.encode(routeTitle)
+            val encodedLocation = Uri.encode(location)
+            val encodedImage = Uri.encode(trailImage)
+            val encodedDifficulty = Uri.encode("Media")
+            val trailRating = rating.toFloat()
+
+            navController.navigate("detail/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/$trailRating")
+        }
+
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Personas:", color = Color.White)
+        HorizontalDivider(color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column {
+            if (participants.isEmpty()) {
+                Text("No hay participantes aún.", color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
+            } else {
+                participants.forEach { participant ->
+                    ParticipantCard(participant.name, participant.username)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider(color = Color.White)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        GradientButton("Salir de la expedición") {
+            // API ENDPOINT: POST leave expedition
+            navController.navigate("home") {
+                popUpTo("home") { inclusive = true }
             }
         }
     }
@@ -123,68 +161,8 @@ fun ExpeditionScreen(
 
 data class Participant(val name: String, val username: String)
 
-val participantsList = listOf(
-    Participant("Alfonso Obregon", "AlfOber12"),
-    Participant("Rogelio Juarez", "Roger"),
-    Participant("Catalina Lopez", "Cathy"),
-    Participant("Alfonso Obregon", "AlfOber12"),
-    Participant("Rogelio Juarez", "Roger"),
-    Participant("Catalina Lopez", "Cathy")
-)
-
-@Composable
-fun DetailContent(
-    listState: LazyListState,
-    title: String,
-    date: String,
-    imageRes: Int,
-    navController: NavController
-) {
-
-    Column(
-        modifier = Modifier
-            .offset(y = (-16).dp)
-            .padding(16.dp)
-    ) {
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        GradientButton("Información del sendero") {
-            navController.navigate("detail/$title/México/$imageRes")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        GradientButton("Chat") {}
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Personas:", color = Color.White)
-
-        HorizontalDivider(color = Color.White)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-            items(participantsList) { participant ->
-                ParticipantCard(participant.name, participant.username)
-            }
-        }
-
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        HorizontalDivider(color = Color.White)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        GradientButton("Salir de la expedición") {}
-    }
-}
-
 @Composable
 fun ParticipantCard(name: String, user: String) {
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,15 +172,8 @@ fun ParticipantCard(name: String, user: String) {
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .background(Color.LightGray, CircleShape)
-        )
-
+        Box(modifier = Modifier.size(50.dp).background(Color.LightGray, CircleShape))
         Spacer(modifier = Modifier.width(12.dp))
-
         Column {
             Text(name)
             Text(user, color = Color.Gray)

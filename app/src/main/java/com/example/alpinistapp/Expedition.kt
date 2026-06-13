@@ -1,10 +1,15 @@
 package com.example.alpinistapp
 
-data class Expedition (
+data class Expedition(
+    val id: Int,
     val title: String = "",
-    val date: String = "",
-    val imageRes: Int = 0,
-    val id: Int = 0,
-    val creator: String = "",
-    val joined: Boolean = false
+    val date: String,
+    val imageUrl: String = "",
+    val trailId: Int? = null,
+    val route: String? = null,
+    val location: String? = null,
+    val rating: Double? = null,
+    val image: String? = null,
+    val creator: String,
+    val joined: Boolean
 )

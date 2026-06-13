@@ -8,21 +8,31 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(navController: NavController) {
+    val context = LocalContext.current
+    val userPreferences = remember { UserPreferences(context) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Obtenemos los datos del usuario de DataStore
+    val userName by userPreferences.userName.collectAsState(initial = "Cargando...")
+    val userEmail by userPreferences.userEmail.collectAsState(initial = "Cargando...")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -75,14 +85,14 @@ fun ProfileScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Usuario Alpino",
+            text = userName,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF173963)
         )
 
         Text(
-            text = "usuario@ejemplo.com",
+            text = userEmail,
             fontSize = 16.sp,
             color = Color.Gray
         )
@@ -98,8 +108,12 @@ fun ProfileScreen(navController: NavController) {
         GradientButton(
             text = "Cerrar Sesión",
             onClick = {
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
+                coroutineScope.launch {
+                    // Limpiamos la sesión en DataStore
+                    userPreferences.saveLoginState(false)
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 }
             }
         )

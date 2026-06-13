@@ -3,29 +3,15 @@ package com.example.alpinistapp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,25 +19,35 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavController){
-    val email = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
+fun LoginScreen(navController: NavController) {
+    val emailState = remember { mutableStateOf("") }
+    val passwordState = remember { mutableStateOf("") }
     val passwordVisible = remember { mutableStateOf(false) }
-    val emailFocus = remember { FocusRequester() }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val context = LocalContext.current
+    val userPreferences = remember { UserPreferences(context) }
+
     val passwordFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     Box(
         modifier = Modifier
@@ -64,90 +60,125 @@ fun LoginScreen(navController: NavController){
                         Color(0xFF17635D)
                     )
                 )
-            )
-    ){
+            ),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement =  Arrangement.Center
+            verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.recurso_2),
-                contentDescription = "Logo",
+                painter = painterResource(id = R.drawable.alpinist_logo),
+                contentDescription = "Logo de Alpinist App",
                 modifier = Modifier
-                    .size(200.dp)
-                    .padding(bottom = 16.dp)
+                    .size(140.dp)
+                    .clip(RoundedCornerShape(24.dp))
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Inicia sesión",
+                text = "Iniciar Sesión",
                 color = Color.White,
-                fontSize = 24.sp,
-                modifier = Modifier.padding(bottom = 32.dp)
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
             )
 
-            TextField(
-                value = email.value,
-                onValueChange = { email.value = it },
-                placeholder = { Text(text = "Correo electrónico") },
-                label = { Text("Usuario o Email") },
-                shape = RoundedCornerShape(12.dp),
+            Spacer(modifier = Modifier.height(24.dp))
 
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = {
-                        passwordFocus.requestFocus()
-                    }
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(emailFocus)
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = Color(0xFFFF6E3D),
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+
+            TextField(
+                value = emailState.value,
+                onValueChange = { emailState.value = it },
+                label = { Text("Correo Electrónico") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             TextField(
-                value = password.value,
-                onValueChange = { password.value = it },
-                placeholder = { Text(text = "Contraseña") },
+                value = passwordState.value,
+                onValueChange = { passwordState.value = it },
                 label = { Text("Contraseña") },
+                singleLine = true,
                 visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    IconButton(onClick = {
-                        passwordVisible.value = !passwordVisible.value
-                    }){
+                    IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
                         Icon(
-                            imageVector = if (passwordVisible.value)
-                                Icons.Default.Visibility
-                            else Icons.Default.VisibilityOff,
+                            imageVector = if (passwordVisible.value) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = null
                         )
                     }
                 },
                 shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        keyboardController?.hide()
-                    }
-                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                }),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(passwordFocus)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            GradientButton(
-                text = "Iniciar sesión",
-                onClick = { navController.navigate("home") }
-            )
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White)
+            } else {
+                GradientButton(
+                    text = "Ingresar",
+                    onClick = {
+                        if (emailState.value.isBlank() || passwordState.value.isBlank()) {
+                            errorMessage = "Por favor, llena todos los campos."
+                        } else {
+                            coroutineScope.launch {
+                                try {
+                                    isLoading = true
+                                    errorMessage = null
+                                    val response = RetrofitClient.apiService.login_user(
+                                        LoginRequest(emailState.value.trim(), passwordState.value)
+                                    )
+                                    if (response.success) {
+                                        // Guardamos los datos del usuario en DataStore
+                                        userPreferences.saveUserData(
+                                            isLoggedIn = true,
+                                            name = response.user?.name,
+                                            email = response.user?.email
+                                        )
+                                        navController.navigate("home") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    } else {
+                                        errorMessage = response.message
+                                    }
+                                } catch (e: retrofit2.HttpException) {
+                                    errorMessage = "Correo o contraseña incorrectos."
+                                } catch (e: Exception) {
+                                    errorMessage = "Error de conexión con el servidor alpino."
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        }
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

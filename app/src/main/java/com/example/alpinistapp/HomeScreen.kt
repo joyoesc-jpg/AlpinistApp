@@ -5,33 +5,44 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator // Importado para el estado de carga
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.* // Importa de golpe remember, mutableStateOf y LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
-val expeditions = listOf(
-    Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
-    Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl),
-    Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
-    Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl),
-    Expedition("Cumbres del Ajusco", "Jueves 18 de junio", R.drawable.ajusco),
-    Expedition("Popocatépetl", "Viernes 25 de septiembre", R.drawable.popocatepetl)
-)
-
 @Composable
 fun HomeScreen(
     navController: NavController
 ){
+    var expeditionsList by remember { mutableStateOf<List<Expedition>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            isLoading = true
+            errorMessage = null
+
+            val response = RetrofitClient.apiService.getExpeditions()
+            expeditionsList = response
+        } catch (e: Exception) {
+            errorMessage = "No se pudieron cargar tus próximas expediciones."
+        } finally {
+            isLoading = false
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -61,7 +72,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(22.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(26.dp))
 
         Text(
@@ -72,17 +83,41 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn (
-            contentPadding = PaddingValues(horizontal = 16.dp),
-        ) {
-            items(expeditions){exp ->
-                ExpeditionCard(
-                    title = exp.title,
-                    date = exp.date,
-                    imageRes = exp.imageRes,
-                    expedition = exp,
-                    navController = navController
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF175294))
+            }
+        } else if (errorMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = errorMessage!!,
+                    color = Color.Red,
+                    textAlign = TextAlign.Center,
+                    fontSize = 16.sp
                 )
+            }
+        } else {
+            LazyColumn (
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                items(expeditionsList) { exp ->
+                    ExpeditionCard(
+                        expedition = exp,
+                        navController = navController
+                    )
+                }
             }
         }
 

@@ -2,9 +2,12 @@ package com.example.alpinistapp
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.location.Location
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.*
@@ -17,16 +20,19 @@ import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
-
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
-
-import com.mapbox.maps.plugin.annotation.annotations
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ActiveExpedition(navController: NavController) {
+    val context = LocalContext.current
+
+    // API ENDPOINT: Load real route points from specific expedition GPX
+    var routePoints by remember { mutableStateOf<List<Point>>(emptyList()) }
 
     val permissionState = rememberPermissionState(
         Manifest.permission.ACCESS_FINE_LOCATION
@@ -36,78 +42,79 @@ fun ActiveExpedition(navController: NavController) {
         permissionState.launchPermissionRequest()
     }
 
+    LaunchedEffect(Unit) {
+        val points = withContext(Dispatchers.IO) {
+            // API ENDPOINT: Fetch GPX from server or cache
+            parseGpx(context, "sample.gpx")
+        }
+        routePoints = points
+    }
+
     AndroidView(
-        factory = { context ->
-            val mapView = MapView(context)
+        factory = { ctx ->
+            MapView(ctx).apply {
+                mapboxMap.loadStyle(Style.OUTDOORS) {
+                    location.updateSettings {
+                        enabled = true
+                        pulsingEnabled = true
+                    }
 
-            mapView.mapboxMap.loadStyle(Style.OUTDOORS) {
+                    // Marcadores de punto
+                    val pointAnnotationManager = annotations.createPointAnnotationManager()
 
-                val annotationApi = mapView.annotations
-
-                val pointAnnotationManager =
-                    annotationApi.createPointAnnotationManager()
-
-                mapView.location.updateSettings {
-                    enabled = true
-                    pulsingEnabled = true
-                }
-
-                val fusedLocationClient =
-                    LocationServices.getFusedLocationProviderClient(context)
-
-                val routePoints =
-                    parseGpx(
-                        context,
-                        "sample.gpx"
-                    )
-
-                val polylineManager =
-                    mapView.annotations
-                        .createPolylineAnnotationManager()
-
-                val polyline =
-                    PolylineAnnotationOptions()
-                        .withPoints(routePoints)
-
-                polylineManager.create(polyline)
-
-                fusedLocationClient.lastLocation
-                    .addOnSuccessListener { location: Location? ->
+                    // Obtener la última ubicación conocida del usuario para centrar la cámara por primera vez
+                    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(ctx)
+                    fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                         location?.let {
-                            mapView.mapboxMap.setCamera(
+                            mapboxMap.setCamera(
                                 CameraOptions.Builder()
-                                    .center(
-                                        Point.fromLngLat(
-                                            it.longitude,
-                                            it.latitude
-                                        )
-                                    )
-                                    .zoom(16.0)
+                                    .center(Point.fromLngLat(it.longitude, it.latitude))
+                                    .zoom(15.0)
                                     .build()
                             )
-
-                            val pointAnnotationOptions = PointAnnotationOptions()
-                                .withPoint(
-                                    Point.fromLngLat(
-                                        it.longitude,
-                                        it.latitude
-                                    )
-                                )
-                            pointAnnotationManager.create(pointAnnotationOptions)
                         }
                     }
-                val point = Point.fromLngLat(
-                    -99.1332,
-                    19.4326
-                )
-
-                val pointAnnotationOptions = PointAnnotationOptions()
-                    .withPoint(point)
-
-                pointAnnotationManager.create(pointAnnotationOptions)
-
+                }
             }
-            mapView
+        },
+        modifier = Modifier.fillMaxSize(),
+        update = { mapView ->
+            if (routePoints.isNotEmpty()) {
+                mapView.mapboxMap.getStyle { style ->
+                    val polylineManager = mapView.annotations.createPolylineAnnotationManager()
+                    val pointManager = mapView.annotations.createPointAnnotationManager()
+
+                    // Dibujar la ruta
+                    val polyline = PolylineAnnotationOptions()
+                        .withPoints(routePoints)
+                        .withLineWidth(5.0)
+                        .withLineColor("#175294")
+
+                    polylineManager.create(polyline)
+
+                    // HIGHLIGHTING END POINTS: Marking Start (Green) and End (Red)
+                    pointManager.create(
+                        PointAnnotationOptions()
+                            .withPoint(routePoints.first())
+                            .withTextField("INICIO")
+                            .withTextColor("#2E7D32")
+                    )
+                    pointManager.create(
+                        PointAnnotationOptions()
+                            .withPoint(routePoints.last())
+                            .withTextField("FIN")
+                            .withTextColor("#C62828")
+                    )
+
+                    // Opcional: Centrar la cámara en el inicio de la ruta cargada
+                    mapView.mapboxMap.setCamera(
+                        CameraOptions.Builder()
+                            .center(routePoints.first())
+                            .zoom(13.0)
+                            .build()
+                    )
+                }
+            }
         }
     )
 }
