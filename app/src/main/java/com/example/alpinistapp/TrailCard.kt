@@ -1,6 +1,7 @@
 package com.example.alpinistapp
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,26 +23,30 @@ import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun TrailCard(
     trail: Trail,
     navController: NavController
 ){
-    // Encodificamos las variables con sus nuevos nombres del modelo
     val encodedRoute = Uri.encode(trail.routeTitle)
     val encodedLocation = Uri.encode(trail.location)
     val encodedImage = Uri.encode(trail.imageUrl)
     val encodedDifficulty = Uri.encode(trail.difficulty)
+    Log.d("DEBUG_RUTA", "Sendero: ${trail.routeTitle}, ID: ${trail.id}")
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable {
-                // La ruta debe coincidir exactamente con el orden de MainActivity
-                navController.navigate("detail/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/${trail.rating}")
-            },
+                if (trail.id != 0) {
+                    navController.navigate("detail/${trail.id}/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/${trail.rating}")
+                } else {
+                    Log.e("NAV_ERROR", "Intentaste navegar con un ID de ruta 0")
+                }            },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ){
@@ -52,7 +57,7 @@ fun TrailCard(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = trail.routeTitle, // Corregido
+                    text = trail.routeTitle,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Normal
                 )
@@ -67,8 +72,8 @@ fun TrailCard(
             }
 
             AsyncImage(
-                model = trail.imageUrl, // Corregido
-                contentDescription = "Imagen de la ruta ${trail.routeTitle}", // Corregido
+                model = trail.imageUrl,
+                contentDescription = "Imagen de la ruta ${trail.routeTitle}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,23 +81,4 @@ fun TrailCard(
             )
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun TrailCardPreview() {
-    // Creamos un objeto "falso" con datos de prueba
-    val mockTrail = Trail(
-        routeTitle = "Nevado de Toluca",
-        location = "Estado de México",
-        difficulty = "Media",
-        imageUrl = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b", // URL de prueba
-        rating = 4.8
-    )
-
-    // Dibujamos la tarjeta pasándole un NavController simulado
-    TrailCard(
-        trail = mockTrail,
-        navController = rememberNavController()
-    )
 }

@@ -1,6 +1,7 @@
 package com.example.alpinistapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,18 +21,10 @@ import com.example.alpinistapp.ui.theme.AlpinistAppTheme
 import com.mapbox.common.TileStore
 import com.mapbox.bindgen.Value
 
-import android.content.Context
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-
-import com.mapbox.common.TileStoreOptions
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,7 +38,7 @@ class MainActivity : ComponentActivity() {
 
         tileStore.setOption(
             "disk-capacity",
-            Value(capacidadBytes) // <-- ENVOLVEMOS EL LONG DENTRO DE VALUE
+            Value(capacidadBytes)
         )
 
         enableEdgeToEdge()
@@ -83,8 +76,9 @@ fun AppNavigation() {
             composable("expedition") { ActiveExpedition(navController) }
 
             composable(
-                route = "detail/{routeTitle}/{location}/{imageUrl}/{difficulty}/{rating}",
+                route = "detail/{trailId}/{routeTitle}/{location}/{imageUrl}/{difficulty}/{rating}",
                 arguments = listOf(
+                    navArgument("trailId") { type = NavType.IntType },
                     navArgument("routeTitle") { type = NavType.StringType },
                     navArgument("location") { type = NavType.StringType },
                     navArgument("imageUrl") { type = NavType.StringType },
@@ -92,24 +86,26 @@ fun AppNavigation() {
                     navArgument("rating") { type = NavType.FloatType }
                 )
             ) { backStackEntry ->
+                val trailId = backStackEntry.arguments?.getInt("trailId")
+                Log.d("DEBUG_RUTAS", "ID extraído del NavHost: $trailId")
+                    ?: throw IllegalStateException("¡Error: El trailId es obligatorio y no fue proporcionado en la navegación!")
                 val routeTitle = backStackEntry.arguments?.getString("routeTitle") ?: ""
                 val location = backStackEntry.arguments?.getString("location") ?: ""
                 val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
-                val difficulty = backStackEntry.arguments?.getString("difficulty") ?: ""
                 val rating = backStackEntry.arguments?.getFloat("rating")?.toDouble() ?: 0.0
 
                 TrailScreen(
+                    trailId = trailId,
                     routeTitle = routeTitle,
                     location = location,
                     imageUrl = imageUrl,
-                    //difficulty = difficulty,
-                    //rating = rating,
                     navController = navController
                 )
             }
 
             composable(
-                route = "expedition_detail/{title}/{date}/{imageUrl}?routeTitle={routeTitle}&location={location}&trailImage={trailImage}&rating={rating}",
+
+                route = "expedition_detail/{title}/{date}/{imageUrl}?routeTitle={routeTitle}&location={location}&trailImage={trailImage}&rating={rating}&trailId={trailId}",
                 arguments = listOf(
                     navArgument("title") { type = NavType.StringType },
                     navArgument("date") { type = NavType.StringType },
@@ -117,7 +113,8 @@ fun AppNavigation() {
                     navArgument("routeTitle") { type = NavType.StringType; defaultValue = "" },
                     navArgument("location") { type = NavType.StringType; defaultValue = "" },
                     navArgument("trailImage") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("rating") { type = NavType.FloatType; defaultValue = 4.0f }
+                    navArgument("rating") { type = NavType.FloatType; defaultValue = 4.0f },
+                    navArgument("trailId") { type = NavType.IntType;}
                 )
             ) { backStackEntry ->
                 val title = backStackEntry.arguments?.getString("title") ?: ""
@@ -128,6 +125,7 @@ fun AppNavigation() {
                 val location = backStackEntry.arguments?.getString("location") ?: "Ubicación"
                 val trailImage = backStackEntry.arguments?.getString("trailImage") ?: imageUrl
                 val rating = backStackEntry.arguments?.getFloat("rating")?.toDouble() ?: 4.0
+                val trailId = backStackEntry.arguments?.getInt("trailId")
 
                 ExpeditionScreen(
                     title = title,
@@ -137,14 +135,15 @@ fun AppNavigation() {
                     location = location,
                     trailImage = trailImage,
                     rating = rating,
+                    trailId = trailId,
                     navController = navController
                 )
             }
         }
     }
-        if (currentRouteName != "login" && currentRouteName != "register") {
-            ExpandableFab(navController)
-        }
+    if (currentRouteName != "login" && currentRouteName != "register") {
+        ExpandableFab(navController)
+    }
 
 }
 

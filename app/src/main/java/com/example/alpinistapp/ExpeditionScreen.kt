@@ -1,7 +1,6 @@
 package com.example.alpinistapp
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -36,6 +34,7 @@ fun ExpeditionScreen(
     location: String,
     trailImage: String,
     rating: Double,
+    trailId: Int?,
     navController: NavController
 ) {
     val listState = rememberLazyListState()
@@ -96,6 +95,7 @@ fun ExpeditionScreen(
                     location = location,
                     trailImage = trailImage,
                     rating = rating,
+                    trailId = trailId,
                     participants = participants,
                     navController = navController
                 )
@@ -110,6 +110,7 @@ fun DetailContent(
     location: String,
     trailImage: String,
     rating: Double,
+    trailId: Int?,
     participants: List<Participant>,
     navController: NavController
 ) {
@@ -127,7 +128,7 @@ fun DetailContent(
             val encodedDifficulty = Uri.encode("Media")
             val trailRating = rating.toFloat()
 
-            navController.navigate("detail/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/$trailRating")
+            navController.navigate("detail/$trailId/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/$trailRating")
         }
 
 

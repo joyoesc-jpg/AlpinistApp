@@ -1,6 +1,7 @@
 package com.example.alpinistapp
 
-import android.util.Log
+import TrailDetails
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,9 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.mapbox.geojson.Point
+import com.google.gson.annotations.SerializedName
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
@@ -36,22 +38,45 @@ import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import android.util.Log
+import com.example.alpinistapp.TrailDetailsResponse
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.items
+import com.example.alpinistapp.CreateExpeditionRequest
+import com.example.alpinistapp.ExpeditionResponse
+import com.example.alpinistapp.JoinExpeditionRequest
+import com.example.alpinistapp.ApiResponse
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
+
+import android.app.TimePickerDialog
+import android.app.DatePickerDialog
+import androidx.compose.ui.platform.LocalLocale
+
 
 data class Review(
-    val author: String,
+    @SerializedName("author") val author: String?,
     val rating: Int,
     val comment: String,
-    val date: String
+    val date: String?
 )
 
 @Composable
 fun TrailScreen(
     routeTitle: String,
+    trailId: Int?,
     location: String,
     imageUrl: String,
-    navController: NavController
+    navController: NavController,
+    viewModel: TrailViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -59,35 +84,93 @@ fun TrailScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showReviewDialog by remember { mutableStateOf(false) }
 
+    var trailDetails by remember { mutableStateOf<TrailDetailsResponse?>(null) }
+    var isLoadingDetails by remember { mutableStateOf(true) }
+    var detailsError by remember { mutableStateOf<String?>(null) }
+
     val userPreferences = remember { UserPreferences(context) }
     val userName by userPreferences.userName.collectAsState(initial = "Usuario")
+    val userId by userPreferences.userId.collectAsState(initial = 0)
 
-    // ENDPOINT: Fetch expeditions for this specific trail
-    val upcomingExpeditions = remember {
-        mutableStateListOf<Expedition>()
+    val reviews by viewModel.reviews.collectAsState()
+
+    var expeditionsList by remember { mutableStateOf<List<ExpeditionResponse>>(emptyList()) }
+    var isLoadingExpeditions by remember { mutableStateOf(true) }
+    var isCreatingExpedition by remember { mutableStateOf(false) }
+
+    var reloadExpeditions by remember { mutableStateOf(false) }
+
+    LaunchedEffect(trailId) {
+        viewModel.fetchReviews(trailId)
     }
 
-    // ENDPOINT: Fetch reviews for this specific trail
-    val reviews = remember {
-        mutableStateListOf<Review>()
+    LaunchedEffect(trailId) {
+        if (trailId != null && trailId > 0) {
+            isLoadingDetails = true
+            detailsError = null
+            try {
+                val details = RetrofitClient.apiService.getTrailDetails(trailId)
+                trailDetails = details
+                Log.d("TRAIL_DETAILS", "Detalles cargados: $details")
+            } catch (e: Exception) {
+                detailsError = "No se pudieron cargar los detalles del sendero"
+                Log.e("TRAIL_DETAILS", "Error cargando detalles: ${e.message}", e)
+            } finally {
+                isLoadingDetails = false
+            }
+        } else {
+            isLoadingDetails = false
+            detailsError = "ID de sendero inválido"
+        }
+    }
+
+
+    LaunchedEffect(trailId, reloadExpeditions) {
+        if (trailId != null && trailId > 0) {
+            isLoadingExpeditions = true
+            try {
+                val expeditions = RetrofitClient.apiService.getExpeditionsByTrail(
+                    trailId = trailId
+                )
+                expeditionsList = expeditions
+                Log.d("EXPEDICIONES", "Cargadas ${expeditions.size} expediciones")
+            } catch (e: Exception) {
+                Log.e("EXPEDICIONES", "Error cargando: ${e.message}", e)
+            } finally {
+                isLoadingExpeditions = false
+            }
+        }
     }
 
     if (showCreateDialog) {
         CreateExpeditionDialog(
             trailTitle = routeTitle,
             onDismiss = { showCreateDialog = false },
-            onCreate = { title, date ->
-                // ENDPOINT: POST request to create a new expedition
-                upcomingExpeditions.add(
-                    Expedition(
-                        id = upcomingExpeditions.size + 1,
-                        title = title,
-                        date = date,
-                        creator = userName, 
-                        joined = true
-                    )
-                )
-                showCreateDialog = false
+            onCreate = { title, date, time ->
+                scope.launch {
+                    try {
+                        val request = CreateExpeditionRequest(
+                            title = title,
+                            date = date,
+                            time = time,
+                            trailId = trailId ?: 0,
+                            creatorId = userId
+                        )
+
+                        val response = RetrofitClient.apiService.createExpedition(request)
+                        if (response.success) {
+                            Toast.makeText(context, "✅ ${response.message}", Toast.LENGTH_SHORT).show()
+                            showCreateDialog = false
+                            // Forzar recarga de expediciones
+                            reloadExpeditions = !reloadExpeditions
+                        } else {
+                            Toast.makeText(context, "❌ ${response.message}", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CREAR_EXP", "Error: ${e.message}", e)
+                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         )
     }
@@ -96,11 +179,27 @@ fun TrailScreen(
         CreateReviewDialog(
             onDismiss = { showReviewDialog = false },
             onSave = { rating, comment ->
-                // ENDPOINT: POST request to save the review
-                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val currentDate = sdf.format(Date())
-                reviews.add(0, Review(userName, rating, comment, "Hoy ($currentDate)"))
-                showReviewDialog = false
+                if (trailId != null) {
+                    if (userId != 0 && trailId > 0) {
+                        viewModel.addReview(
+                            userId = userId,
+                            trailId = trailId,
+                            rating = rating,
+                            comment = comment,
+                            onSuccess = {
+                                showReviewDialog = false
+                                Toast.makeText(context, "Reseña publicada con éxito", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { errorMessage ->
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    } else {
+                        val errorMsg = if (trailId <= 0) "Error: ID de ruta inválido ($trailId)"
+                        else "Error: Sesión no encontrada"
+                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         )
     }
@@ -135,11 +234,33 @@ fun TrailScreen(
 
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                // Nombre del sendero
                 Text(text = routeTitle, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-                val trailRating = if (reviews.isEmpty()) "--" else String.format("%.1f", reviews.map { it.rating }.average())
+
+                // Calificación promedio (de las reseñas)
+                val trailRating = if (reviews.isEmpty()) {
+                    "Sin calificaciones"
+                } else {
+                    val promedio = reviews.map { it.rating }.average()
+                    String.format("%.1f ★", promedio)
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
-                // ENDPOINT: Difficulty should come from the trail data
-                Text(text = "$location | $trailRating ★ | --", color = Color.White, fontSize = 14.sp)
+
+                // Ubicación y dificultad (desde trailDetails)
+                val difficultyText = if (trailDetails != null && trailDetails!!.routeType.isNotBlank()) {
+                    trailDetails!!.routeType
+                } else if (isLoadingDetails) {
+                    "Cargando..."
+                } else {
+                    "Dificultad no especificada"
+                }
+
+                Text(
+                    text = "$location | $trailRating | $difficultyText",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
             }
         }
 
@@ -158,14 +279,26 @@ fun TrailScreen(
 
         item {
             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                // ENDPOINT: Trail stats should be fetched from the API
-                TrailStatsCard(
-                    distance = "-- km",
-                    elevation = "-- m",
-                    estimatedTime = "-- h",
-                    trailType = "--",
-                    recommendedGroup = "-- personas"
-                )
+                when {
+                    isLoadingDetails -> {
+                        // ... código de carga
+                    }
+                    detailsError != null -> {
+                        // ... código de error
+                    }
+                    trailDetails != null -> {
+                        TrailStatsCard(
+                            distance = "${trailDetails!!.distance} km",
+                            elevation = "${trailDetails!!.elevationGain} m",
+                            estimatedTime = "${trailDetails!!.estimatedTime} horas",
+                            trailType = trailDetails!!.routeType,
+                            recommendedGroup = "${trailDetails!!.recommendedGroup} personas"
+                        )
+                    }
+                    else -> {
+                        Text("No hay información disponible")
+                    }
+                }
             }
         }
 
@@ -177,18 +310,55 @@ fun TrailScreen(
             }
         }
 
-        if (upcomingExpeditions.isEmpty()) {
-            item {
-                Text(
-                    text = "No hay expediciones próximas.",
-                    color = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(16.dp)
-                )
+        when {
+            isLoadingExpeditions -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
+                    }
+                }
             }
-        } else {
-            items(upcomingExpeditions.take(3)) { expedition ->
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    ExpeditionInfoCard(date = expedition.date, creator = expedition.creator, joined = expedition.joined)
+            expeditionsList.isEmpty() -> {
+                item {
+                    Text(
+                        text = "No hay expediciones próximas. ¡Crea la primera!",
+                        color = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            else -> {
+                items(expeditionsList.take(3)) { expedition ->
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        ExpeditionInfoCard(
+                            expedition = expedition,
+                            currentUserId = userId,
+                            userName = userName,
+                            onJoin = { expId ->
+                                scope.launch {
+                                    try {
+                                        val response = RetrofitClient.apiService.joinExpedition(
+                                            expeditionId = expId,
+                                            request = JoinExpeditionRequest(userId = userId)
+                                        )
+                                        if (response.success) {
+                                            Toast.makeText(context, response.message, Toast.LENGTH_SHORT).show()
+                                            // Recargar expediciones
+                                            val updated = RetrofitClient.apiService.getExpeditionsByTrail(
+                                                trailId = trailId ?: 0
+                                            )
+                                            expeditionsList = updated
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -234,7 +404,9 @@ fun TrailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "Reseñas", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = { showReviewDialog = true }) {
+                    TextButton(onClick = {
+                        Log.d("DEBUG_TRAIL", "Abriendo diálogo para TrailID: $trailId")
+                        showReviewDialog = true }) {
                         Text(text = "Añadir reseña", color = Color(0xffff9b3d))
                     }
                 }
@@ -318,39 +490,147 @@ fun CreateReviewDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateExpeditionDialog(
     trailTitle: String,
     onDismiss: () -> Unit,
-    onCreate: (String, String) -> Unit
+    onCreate: (String, String, String) -> Unit
 ) {
+    val context = LocalContext.current
     var expeditionTitle by remember { mutableStateOf("Expedición a $trailTitle") }
-    var date by remember { mutableStateOf("") }
+
+    // Fecha
+    val calendar = Calendar.getInstance()
+    val format = SimpleDateFormat("yyyy-MM-dd", LocalLocale.current.platformLocale)
+    var selectedDate by remember {
+        mutableStateOf(format.format(calendar.time))  // ← fecha de hoy por defecto
+    }
+    var selectedDateMillis by remember { mutableStateOf(calendar.timeInMillis) }
+
+    // Hora
+    var selectedHour by remember { mutableStateOf(calendar.get(Calendar.HOUR_OF_DAY)) }
+    var selectedMinute by remember { mutableStateOf(calendar.get(Calendar.MINUTE)) }
+
+    // Estado para controlar los diálogos
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    // Formatear fecha cuando cambia
+    LaunchedEffect(selectedDateMillis) {
+        val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        selectedDate = format.format(java.util.Date(selectedDateMillis))
+    }
+
+    // Efecto para mostrar DatePicker
+    LaunchedEffect(showDatePicker) {
+        if (showDatePicker) {
+            DatePickerDialog(
+                context,
+                { _, year, month, dayOfMonth ->
+                    calendar.set(year, month, dayOfMonth)
+                    selectedDateMillis = calendar.timeInMillis
+                    showDatePicker = false
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).apply {
+                setButton(DatePickerDialog.BUTTON_NEGATIVE, "Cancelar") { _, _ ->
+                    showDatePicker = false
+                }
+                show()
+            }
+        }
+    }
+
+    // Efecto para mostrar TimePicker
+    LaunchedEffect(showTimePicker) {
+        if (showTimePicker) {
+            TimePickerDialog(
+                context,
+                { _, hourOfDay, minute ->
+                    selectedHour = hourOfDay
+                    selectedMinute = minute
+                    showTimePicker = false
+                },
+                selectedHour,
+                selectedMinute,
+                true
+            ).apply {
+                setButton(TimePickerDialog.BUTTON_NEGATIVE, "Cancelar") { _, _ ->
+                    showTimePicker = false
+                }
+                show()
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Crear Nueva Expedición", fontWeight = FontWeight.Bold) },
+        title = { Text("Crear Expedición", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = expeditionTitle,
                     onValueChange = { expeditionTitle = it },
-                    label = { Text("Título de la expedición") },
+                    label = { Text("Título") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Fecha (ej. 15 Junio 2026)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+
+                // ✅ CORRECCIÓN — envolver el TextField en un Box con el clickable
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true }  // ← el Box sí captura el toque
+                ) {
+                    OutlinedTextField(
+                        value = if (selectedDate.isEmpty()) "Seleccionar fecha" else selectedDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = false,          // ← deshabilitar para que no robe el foco
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Fecha") },
+                        trailingIcon = { Text("📅", fontSize = 20.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(  // ← evitar que se vea "gris de deshabilitado"
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showTimePicker = true }
+                ) {
+                    OutlinedTextField(
+                        value = String.format("%02d:%02d", selectedHour, selectedMinute),
+                        onValueChange = {},
+                        readOnly = true,
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Hora") },
+                        trailingIcon = { Text("⏰", fontSize = 20.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (expeditionTitle.isNotBlank() && date.isNotBlank()) {
-                        onCreate(expeditionTitle, date)
+                    if (expeditionTitle.isNotBlank() && selectedDate.isNotBlank()) {
+                        val timeString = String.format("%02d:%02d:00", selectedHour, selectedMinute)
+                        onCreate(expeditionTitle, selectedDate, timeString)
+                        onDismiss()
                     }
                 }
             ) {
@@ -379,8 +659,17 @@ fun ReviewCard(review: Review) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = review.author, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-            Text(text = review.date, color = Color.Gray, fontSize = 12.sp)
+            Text(
+                text = review.author ?: "Usuario anónimo",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+            Text(
+                text = review.date ?: "",
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
         Row {
@@ -399,33 +688,70 @@ fun ReviewCard(review: Review) {
 }
 
 @Composable
-fun ExpeditionInfoCard(date: String, creator: String, joined: Boolean) {
+fun ExpeditionInfoCard(
+    expedition: ExpeditionResponse,
+    userName: String,
+    currentUserId: Int,
+    onJoin: (Int) -> Unit
+) {
+    val isCreator = expedition.creatorId == currentUserId
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(50))
             .background(Color.White)
-            .border(
-                width = if (joined) 2.dp else 0.dp,
-                color = if (joined) Color.White else Color.Transparent,
-                shape = RoundedCornerShape(50)
-            )
             .padding(horizontal = 22.dp, vertical = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text(text = date, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = expedition.title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Creado por $creator", fontSize = 12.sp, color = Color.Gray)
+            Text(
+                text = "${expedition.date} a las ${expedition.time}",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+            Text(
+                text = "Creado por ${expedition.creatorName} • ${expedition.memberCount} participantes",
+                fontSize = 11.sp,
+                color = Color.Gray
+            )
         }
+
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
-                .background(Brush.horizontalGradient(listOf(Color(0xFF175294), Color(0xFF17635D))))
+                .then(
+                    if (expedition.isJoined || isCreator) {
+                        Modifier.background(Color(0xFF4CAF50))
+                    } else {
+                        Modifier.background(
+                            Brush.horizontalGradient(listOf(Color(0xFF175294), Color(0xFF17635D)))
+                        )
+                    }
+                )
+                .clickable(enabled = !isCreator && !expedition.isJoined) {
+                    if (!isCreator && !expedition.isJoined) {
+                        onJoin(expedition.id)
+                    }
+                }
                 .padding(horizontal = 24.dp, vertical = 10.dp)
         ) {
-            Text(text = if (joined) "Unirme" else "Info", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(
+                text = when {
+                    isCreator -> "Creador"
+                    expedition.isJoined -> "Unido"
+                    else -> "Unirme"
+                },
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

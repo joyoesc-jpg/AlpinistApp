@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -159,7 +160,8 @@ fun LoginScreen(navController: NavController) {
                                         userPreferences.saveUserData(
                                             isLoggedIn = true,
                                             name = response.user?.name,
-                                            email = response.user?.email
+                                            email = response.user?.email,
+                                            id = response.user?.user_id
                                         )
                                         navController.navigate("home") {
                                             popUpTo("login") { inclusive = true }
@@ -167,7 +169,7 @@ fun LoginScreen(navController: NavController) {
                                     } else {
                                         errorMessage = response.message
                                     }
-                                } catch (e: retrofit2.HttpException) {
+                                } catch (e: HttpException) {
                                     errorMessage = "Correo o contraseña incorrectos."
                                 } catch (e: Exception) {
                                     errorMessage = "Error de conexión con el servidor alpino."

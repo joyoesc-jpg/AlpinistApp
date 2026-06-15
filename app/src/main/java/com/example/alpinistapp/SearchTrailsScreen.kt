@@ -48,10 +48,17 @@ fun SearchTrailsScreen(navController: NavController) {
     }
 
     val filteredTrails = allTrails.filter { trail ->
-        val matchesQuery = trail.routeTitle.contains(searchQuery, ignoreCase = true) ||
-                trail.location.contains(searchQuery, ignoreCase = true)
-        val matchesDifficulty = selectedDifficulty == "Todas" || trail.difficulty.equals(selectedDifficulty, ignoreCase = true)
-        
+        // Usamos ?: "" para evitar que el nulo rompa el .contains
+        val title = trail.routeTitle ?: ""
+        val location = trail.location ?: ""
+        val difficulty = trail.difficulty ?: ""
+
+        val matchesQuery = title.contains(searchQuery, ignoreCase = true) ||
+                location.contains(searchQuery, ignoreCase = true)
+
+        val matchesDifficulty = selectedDifficulty == "Todas" ||
+                difficulty.equals(selectedDifficulty, ignoreCase = true)
+
         matchesQuery && matchesDifficulty
     }
 

@@ -20,31 +20,25 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 
 @Composable
-fun ExpeditionCard(
-    expedition: Expedition,
+fun HomeTrailCard(
+    trail: Trail,
     navController: NavController
 ) {
-    // Encodificamos los strings para que no rompan la ruta de navegación de la MainActivity
-    val encodedTitle = Uri.encode(expedition.title)
-    val encodedDate = Uri.encode(expedition.date)
-    val encodedUrl = Uri.encode(expedition.imageUrl) // Encodificamos el link de la imagen
-
-    val encodedRoute = Uri.encode(expedition.route ?: expedition.title) // Fallback al título si viene nulo
-    val encodedLocation = Uri.encode(expedition.location ?: "Ubicación")
-    val encodedTrailImage = Uri.encode(expedition.image ?: expedition.imageUrl) // Fallback a la imagen de la exp
-    val trailRating = (expedition.rating ?: 4.0).toFloat()
-    val trailId = expedition.trailId ?: 0
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .clickable {
-                Log.d("DEBUG_NAVEGACION", "ID a punto de navegar: $trailId")
-                navController.navigate(
-                    "expedition_detail/$encodedTitle/$encodedDate/$encodedUrl?routeTitle=$encodedRoute&location=$encodedLocation&trailImage=$encodedTrailImage&rating=$trailRating&trailId=$trailId"
-                )
-                       },
+                Log.d("HOME_NAV", "Navegando a detail con ID: ${trail.id}")
+
+                val encodedRoute = Uri.encode(trail.routeTitle ?: "Sendero")
+                val encodedLocation = Uri.encode(trail.location ?: "Ubicación desconocida")
+                val encodedImage = Uri.encode(trail.imageUrl ?: "")
+                val encodedDifficulty = Uri.encode(trail.difficulty ?: "Media")
+                val trailRating = (trail.rating ?: 4.0).toFloat()
+
+                navController.navigate("detail/${trail.id}/$encodedRoute/$encodedLocation/$encodedImage/$encodedDifficulty/$trailRating")
+            },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(20.dp)
@@ -54,10 +48,9 @@ fun ExpeditionCard(
                 .fillMaxWidth()
                 .height(140.dp)
         ) {
-
             AsyncImage(
-                model = expedition.imageUrl,
-                contentDescription = "Imagen de la expedición",
+                model = trail.imageUrl,
+                contentDescription = "Imagen del sendero",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxHeight()
@@ -74,7 +67,7 @@ fun ExpeditionCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = expedition.title,
+                    text = trail.routeTitle ?: "Sin título",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -82,10 +75,22 @@ fun ExpeditionCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = expedition.date,
-                    fontSize = 16.sp,
+                    text = "${trail.location ?: "Ubicación"} • ${trail.difficulty ?: "Dificultad no especificada"}",
+                    fontSize = 14.sp,
                     color = Color.Gray
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Mostrar rating si existe
+                if (trail.rating != null) {
+                    Text(
+                        text = "⭐ ${trail.rating}/5",
+                        fontSize = 14.sp,
+                        color = Color(0xFFFFA726),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
             }

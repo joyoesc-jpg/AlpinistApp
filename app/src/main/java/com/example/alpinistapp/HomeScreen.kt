@@ -25,7 +25,7 @@ import androidx.navigation.compose.rememberNavController
 fun HomeScreen(
     navController: NavController
 ){
-    var expeditionsList by remember { mutableStateOf<List<Expedition>>(emptyList()) }
+    var trailsList by remember { mutableStateOf<List<Trail>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -34,8 +34,8 @@ fun HomeScreen(
             isLoading = true
             errorMessage = null
 
-            val response = RetrofitClient.apiService.getExpeditions()
-            expeditionsList = response
+            val response = RetrofitClient.apiService.getTrails()
+            trailsList = response
         } catch (e: Exception) {
             errorMessage = "No se pudieron cargar tus próximas expediciones."
         } finally {
@@ -112,9 +112,9 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                items(expeditionsList) { exp ->
-                    ExpeditionCard(
-                        expedition = exp,
+                items(trailsList) { trail ->
+                    HomeTrailCard(
+                        trail = trail,
                         navController = navController
                     )
                 }
@@ -124,6 +124,8 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
+
+
 
 @Preview(showBackground = true)
 @Composable

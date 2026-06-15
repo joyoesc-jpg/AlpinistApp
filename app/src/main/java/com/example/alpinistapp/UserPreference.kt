@@ -3,6 +3,7 @@ package com.example.alpinistapp
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -15,24 +16,25 @@ class UserPreferences(private val context: Context) {
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val USER_NAME = stringPreferencesKey("user_name")
         val USER_EMAIL = stringPreferencesKey("user_email")
+        val USER_ID = intPreferencesKey("user_id")
     }
 
-    // Guardar el estado de la sesión y datos del usuario
-    suspend fun saveUserData(isLoggedIn: Boolean, name: String?, email: String?) {
+    suspend fun saveUserData(isLoggedIn: Boolean, name: String?, email: String?, id: Int?) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
             preferences[USER_NAME] = name ?: ""
             preferences[USER_EMAIL] = email ?: ""
+            preferences[USER_ID] = id ?: 0
         }
     }
 
-    // Guardar solo el estado de la sesión (ej. para logout)
     suspend fun saveLoginState(isLoggedIn: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
             if (!isLoggedIn) {
                 preferences[USER_NAME] = ""
                 preferences[USER_EMAIL] = ""
+                preferences[USER_ID] = 0 // 👇 Limpiamos el ID al cerrar sesión
             }
         }
     }
@@ -50,5 +52,9 @@ class UserPreferences(private val context: Context) {
     // Leer email del usuario
     val userEmail: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[USER_EMAIL] ?: "usuario@ejemplo.com"
+    }
+
+    val userId: Flow<Int> = context.dataStore.data.map { preferences ->
+        preferences[USER_ID] ?: 0
     }
 }

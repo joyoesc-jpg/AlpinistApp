@@ -42,9 +42,9 @@ fun downloadRouteMapOffline(context: Context, routePoints: List<Point>, onComple
 
     val tilesetDescriptor = offlineManager.createTilesetDescriptor(
         TilesetDescriptorOptions.Builder()
-            .styleURI(Style.OUTDOORS) // <--- Descarga el relieve de montañas
-            .minZoom(10)             // Vista general del bosque
-            .maxZoom(16)             // Detalle preciso del camino y senderos
+            .styleURI(Style.OUTDOORS)
+            .minZoom(10)
+            .maxZoom(16)
             .build()
     )
 
