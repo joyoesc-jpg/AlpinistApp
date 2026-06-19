@@ -70,7 +70,7 @@ fun AppNavigation() {
             composable("login") { LoginScreen(navController) }
             composable("register") { RegisterScreen(navController) }
             composable("home") { HomeScreen(navController) }
-            composable("search") { SearchTrailsScreen(navController) }
+            composable("search") { SearchScreen(navController) }//
             composable("profile") { ProfileScreen(navController) }
             composable("settings") { SettingsScreen(navController) }
             composable("expedition") { ActiveExpedition(navController) }

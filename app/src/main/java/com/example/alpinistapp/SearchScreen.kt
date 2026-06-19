@@ -23,13 +23,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
+enum class SearchType {
+    Trails, Expeditions
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchTrailsScreen(navController: NavController) {
+fun SearchScreen(navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedDifficulty by remember { mutableStateOf("Todas") }
+    var searchType by remember { mutableStateOf(SearchType.Trails) }
 
     var allTrails by remember { mutableStateOf<List<Trail>>(emptyList()) }
+    var allExpeditions by remember { mutableStateOf<List<Expedition>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -39,16 +45,17 @@ fun SearchTrailsScreen(navController: NavController) {
         try {
             isLoading = true
             errorMessage = null
+            // Fetch both in parallel or sequence
             allTrails = RetrofitClient.apiService.getTrails()
+            allExpeditions = RetrofitClient.apiService.getExpeditions()
         } catch (e: Exception) {
-            errorMessage = "No se pudieron recuperar los senderos de la montaña."
+            errorMessage = "No se pudieron recuperar los datos de la montaña."
         } finally {
             isLoading = false
         }
     }
 
     val filteredTrails = allTrails.filter { trail ->
-        // Usamos ?: "" para evitar que el nulo rompa el .contains
         val title = trail.routeTitle ?: ""
         val location = trail.location ?: ""
         val difficulty = trail.difficulty ?: ""
@@ -60,6 +67,14 @@ fun SearchTrailsScreen(navController: NavController) {
                 difficulty.equals(selectedDifficulty, ignoreCase = true)
 
         matchesQuery && matchesDifficulty
+    }
+
+    val filteredExpeditions = allExpeditions.filter { expedition ->
+        val title = expedition.title ?: ""
+        val date = expedition.date ?: ""
+        
+        title.contains(searchQuery, ignoreCase = true) ||
+                date.contains(searchQuery, ignoreCase = true)
     }
 
     Column(
@@ -85,13 +100,44 @@ fun SearchTrailsScreen(navController: NavController) {
         ) {
             Column {
                 Text(
-                    text = "Buscar Senderos",
+                    text = if (searchType == SearchType.Trails) "Buscar Senderos" else "Buscar Expediciones",
                     color = Color.White,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                // Selector de tipo de búsqueda
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { searchType = SearchType.Trails },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (searchType == SearchType.Trails) Color(0xffff9b3d) else Color.White.copy(alpha = 0.2f),
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Senderos")
+                    }
+                    Button(
+                        onClick = { searchType = SearchType.Expeditions },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (searchType == SearchType.Expeditions) Color(0xffff9b3d) else Color.White.copy(alpha = 0.2f),
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Expediciones")
+                    }
+                }
 
                 OutlinedTextField(
                     value = searchQuery,
@@ -99,7 +145,9 @@ fun SearchTrailsScreen(navController: NavController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color.White, RoundedCornerShape(12.dp)),
-                    placeholder = { Text("¿A dónde quieres ir?") },
+                    placeholder = { 
+                        Text(if (searchType == SearchType.Trails) "¿A dónde quieres ir?" else "Nombre o fecha de expedición") 
+                    },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -109,41 +157,43 @@ fun SearchTrailsScreen(navController: NavController) {
                     singleLine = true
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Difficulty Filter
-                Text(
-                    text = "Dificultad",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(difficulties) { difficulty ->
-                        val isSelected = selectedDifficulty == difficulty
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedDifficulty = difficulty },
-                            label = { Text(difficulty) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = Color.White.copy(alpha = 0.1f),
-                                labelColor = Color.White,
-                                selectedContainerColor = Color(0xffff9b3d),
-                                selectedLabelColor = Color.White
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
+                if (searchType == SearchType.Trails) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Difficulty Filter (Solo para senderos)
+                    Text(
+                        text = "Dificultad",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(difficulties) { difficulty ->
+                            val isSelected = selectedDifficulty == difficulty
+                            FilterChip(
                                 selected = isSelected,
-                                borderColor = Color.White.copy(alpha = 0.3f),
-                                selectedBorderColor = Color.Transparent,
-                                borderWidth = 1.dp,
-                                selectedBorderWidth = 0.dp
+                                onClick = { selectedDifficulty = difficulty },
+                                label = { Text(difficulty) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color.White.copy(alpha = 0.1f),
+                                    labelColor = Color.White,
+                                    selectedContainerColor = Color(0xffff9b3d),
+                                    selectedLabelColor = Color.White
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = Color.White.copy(alpha = 0.3f),
+                                    selectedBorderColor = Color.Transparent,
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 0.dp
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -176,8 +226,9 @@ fun SearchTrailsScreen(navController: NavController) {
                 )
             }
         } else {
+            val count = if (searchType == SearchType.Trails) filteredTrails.size else filteredExpeditions.size
             Text(
-                text = "Resultados (${filteredTrails.size})",
+                text = "Resultados ($count)",
                 modifier = Modifier.padding(horizontal = 24.dp),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -186,7 +237,8 @@ fun SearchTrailsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (filteredTrails.isEmpty()) {
+            if ((searchType == SearchType.Trails && filteredTrails.isEmpty()) || 
+                (searchType == SearchType.Expeditions && filteredExpeditions.isEmpty())) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -194,7 +246,7 @@ fun SearchTrailsScreen(navController: NavController) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No se encontraron senderos con esos criterios.",
+                        text = "No se encontraron resultados con esos criterios.",
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
@@ -206,11 +258,20 @@ fun SearchTrailsScreen(navController: NavController) {
                         .fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                    items(filteredTrails) { trail ->
-                        TrailCard(
-                            trail = trail,
-                            navController = navController
-                        )
+                    if (searchType == SearchType.Trails) {
+                        items(filteredTrails) { trail ->
+                            TrailCard(
+                                trail = trail,
+                                navController = navController
+                            )
+                        }
+                    } else {
+                        items(filteredExpeditions) { expedition ->
+                            ExpeditionCard(
+                                expedition = expedition,
+                                navController = navController
+                            )
+                        }
                     }
                 }
             }
@@ -220,7 +281,7 @@ fun SearchTrailsScreen(navController: NavController) {
 
 @Preview(showBackground = true)
 @Composable
-fun SearchTrailsScreenPreview() {
+fun SearchScreenPreview() {
     val navController = rememberNavController()
-    SearchTrailsScreen(navController = navController)
+    SearchScreen(navController = navController)
 }
