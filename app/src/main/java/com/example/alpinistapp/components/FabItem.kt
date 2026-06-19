@@ -1,4 +1,4 @@
-package com.example.alpinistapp
+package com.example.alpinistapp.components
 
 import androidx.compose.ui.graphics.vector.ImageVector
 

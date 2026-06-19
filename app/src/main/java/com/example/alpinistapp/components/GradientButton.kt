@@ -1,4 +1,4 @@
-package com.example.alpinistapp
+package com.example.alpinistapp.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

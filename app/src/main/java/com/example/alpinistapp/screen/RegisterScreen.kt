@@ -1,53 +1,50 @@
-package com.example.alpinistapp
+package com.example.alpinistapp.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.alpinistapp.network.RetrofitClient
+import com.example.alpinistapp.network.models.RegisterRequest
 import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(navController: NavController) {
     val nameState = remember { mutableStateOf("") }
+    val surnameState = remember { mutableStateOf("") }
     val emailState = remember { mutableStateOf("") }
     val passwordState = remember { mutableStateOf("") }
     val confirmPasswordState = remember { mutableStateOf("") }
     val passwordVisible = remember { mutableStateOf(false) }
 
+    val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val coroutineScope = rememberCoroutineScope()
 
-    val emailFocus = remember { FocusRequester() }
-    val passwordFocus = remember { FocusRequester() }
-    val confirmPasswordFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier
@@ -66,9 +63,12 @@ fun RegisterScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(48.dp))
+
             Text(
                 text = "Crear Cuenta",
                 color = Color.White,
@@ -78,22 +78,22 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage!!,
-                    color = Color(0xFFFF6E3D),
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
-
             TextField(
                 value = nameState.value,
                 onValueChange = { nameState.value = it },
-                label = { Text("Nombre Completo") },
+                label = { Text("Nombre") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { emailFocus.requestFocus() }),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextField(
+                value = surnameState.value,
+                onValueChange = { surnameState.value = it },
+                label = { Text("Apellidos") },
+                singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -105,12 +105,8 @@ fun RegisterScreen(navController: NavController) {
                 onValueChange = { emailState.value = it },
                 label = { Text("Correo Electrónico") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(emailFocus)
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -122,11 +118,7 @@ fun RegisterScreen(navController: NavController) {
                 singleLine = true,
                 visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { confirmPasswordFocus.requestFocus() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(passwordFocus)
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -146,66 +138,76 @@ fun RegisterScreen(navController: NavController) {
                     }
                 },
                 shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(confirmPasswordFocus)
+                modifier = Modifier.fillMaxWidth()
             )
+
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = errorMessage!!,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (isLoading) {
-                CircularProgressIndicator(color = Color.White)
-            } else {
-                GradientButton(
-                    text = "Regístrate",
-                    onClick = {
-                        when {
-                            nameState.value.isBlank() || emailState.value.isBlank() || passwordState.value.isBlank() -> {
-                                errorMessage = "Por favor, completa todos los campos."
-                            }
-                            passwordState.value != confirmPasswordState.value -> {
-                                errorMessage = "Las contraseñas no coinciden."
-                            }
-                            passwordState.value.length < 6 -> {
-                                errorMessage = "La contraseña debe tener al menos 6 caracteres."
-                            }
-                            else -> {
-                                coroutineScope.launch {
-                                    try {
-                                        isLoading = true
-                                        errorMessage = null
-                                        val response = RetrofitClient.apiService.register_user(
-                                            RegisterRequest(
-                                                name = nameState.value.trim(),
-                                                email = emailState.value.trim(),
-                                                password = passwordState.value
-                                            )
-                                        )
-                                        if (response.success) {
-                                            // Registro exitoso -> Mandamos al Login
-                                            navController.navigate("login") {
-                                                popUpTo("register") { inclusive = true }
-                                            }
-                                        } else {
-                                            errorMessage = response.message
-                                        }
-                                    } catch (e: retrofit2.HttpException) {
-                                        errorMessage = "El correo ya se encuentra registrado."
-                                    } catch (e: Exception) {
-                                        errorMessage = "Error de red al intentar registrarse."
-                                    } finally {
-                                        isLoading = false
-                                    }
+            Button(
+                onClick = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+
+                    // Basic Validation
+                    if (nameState.value.isBlank() || emailState.value.isBlank() || passwordState.value.isBlank()) {
+                        errorMessage = "Por favor, rellena los campos obligatorios."
+                        return@Button
+                    }
+                    if (passwordState.value != confirmPasswordState.value) {
+                        errorMessage = "Las contraseñas no coinciden."
+                        return@Button
+                    }
+
+                    scope.launch {
+                        isLoading = true
+                        errorMessage = null
+                        try {
+                            val request = RegisterRequest(
+                                name = nameState.value,
+                                surname = surnameState.value.ifBlank { null },
+                                email = emailState.value,
+                                password = passwordState.value,
+                                phone_number = null,
+                                birthdate = null
+                            )
+                            val response = RetrofitClient.api.register_user(request)
+                            if (response.success) {
+                                navController.navigate("login") {
+                                    popUpTo("register") { inclusive = true }
                                 }
+                            } else {
+                                errorMessage = response.message
                             }
+                        } catch (e: Exception) {
+                            errorMessage = "Error de red: ${e.localizedMessage}"
+                        } finally {
+                            isLoading = false
                         }
                     }
-                )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xffff9b3d))
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Regístrate")
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -221,6 +223,8 @@ fun RegisterScreen(navController: NavController) {
                     }
                 )
             }
+
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }

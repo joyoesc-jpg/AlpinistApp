@@ -1,4 +1,4 @@
-package com.example.alpinistapp
+package com.example.alpinistapp.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,24 +14,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.launch
+import com.example.alpinistapp.components.GradientButton
 
 @Composable
 fun ProfileScreen(navController: NavController) {
-    val context = LocalContext.current
-    val userPreferences = remember { UserPreferences(context) }
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Obtenemos los datos del usuario de DataStore
-    val userName by userPreferences.userName.collectAsState(initial = "Cargando...")
-    val userEmail by userPreferences.userEmail.collectAsState(initial = "Cargando...")
+    // Hardcoded user data
+    val userName = "Usuario Alpinista"
+    val userEmail = "alpinista@example.com"
 
     Column(
         modifier = Modifier
@@ -66,7 +61,6 @@ fun ProfileScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Profile Avatar placeholder
         Box(
             modifier = Modifier
                 .size(120.dp)
@@ -99,7 +93,6 @@ fun ProfileScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(48.dp))
         
-        // Example of simple profile info items
         ProfileInfoItem(label = "Miembro desde", value = "Enero 2024")
         ProfileInfoItem(label = "Expediciones", value = "12 completadas")
 
@@ -108,16 +101,11 @@ fun ProfileScreen(navController: NavController) {
         GradientButton(
             text = "Cerrar Sesión",
             onClick = {
-                coroutineScope.launch {
-                    // Limpiamos la sesión en DataStore
-                    userPreferences.saveLoginState(false)
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
-                    }
+                navController.navigate("login") {
+                    popUpTo("home") { inclusive = true }
                 }
             }
         )
-
         Spacer(modifier = Modifier.height(40.dp))
     }
 }

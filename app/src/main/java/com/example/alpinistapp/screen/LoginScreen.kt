@@ -1,5 +1,6 @@
 package com.example.alpinistapp
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,25 +31,24 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.alpinistapp.components.GradientButton
+import com.example.alpinistapp.network.models.LoginRequest
+import com.example.alpinistapp.network.RetrofitClient
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 
 @Composable
 fun LoginScreen(navController: NavController) {
     val emailState = remember { mutableStateOf("") }
     val passwordState = remember { mutableStateOf("") }
     val passwordVisible = remember { mutableStateOf(false) }
-
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val coroutineScope = rememberCoroutineScope()
-
-    val context = LocalContext.current
-    val userPreferences = remember { UserPreferences(context) }
+    val isLoading = remember { mutableStateOf(false) }
 
     val passwordFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val sessionManager = remember { SessionManager(context) }
 
     Box(
         modifier = Modifier
@@ -90,15 +90,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage!!,
-                    color = Color(0xFFFF6E3D),
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
             TextField(
                 value = emailState.value,
                 onValueChange = { emailState.value = it },
@@ -107,7 +98,8 @@ fun LoginScreen(navController: NavController) {
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading.value
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -134,48 +126,46 @@ fun LoginScreen(navController: NavController) {
                 }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(passwordFocus)
+                    .focusRequester(passwordFocus),
+                enabled = !isLoading.value
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (isLoading) {
+            if (isLoading.value) {
                 CircularProgressIndicator(color = Color.White)
             } else {
                 GradientButton(
                     text = "Ingresar",
                     onClick = {
-                        if (emailState.value.isBlank() || passwordState.value.isBlank()) {
-                            errorMessage = "Por favor, llena todos los campos."
-                        } else {
-                            coroutineScope.launch {
-                                try {
-                                    isLoading = true
-                                    errorMessage = null
-                                    val response = RetrofitClient.apiService.login_user(
-                                        LoginRequest(emailState.value.trim(), passwordState.value)
+                        val email = emailState.value
+                        val password = passwordState.value
+
+                        if (email.isEmpty() || password.isEmpty()) {
+                            Toast.makeText(context, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show()
+                            return@GradientButton
+                        }
+
+                        scope.launch {
+                            isLoading.value = true
+                            try {
+                                val response = RetrofitClient.api.login_user(LoginRequest(email, password))
+                                if (response.success && response.user != null) {
+                                    sessionManager.saveSession(
+                                        userId = response.user.user_id,
+                                        name = response.user.name,
+                                        email = response.user.email
                                     )
-                                    if (response.success) {
-                                        // Guardamos los datos del usuario en DataStore
-                                        userPreferences.saveUserData(
-                                            isLoggedIn = true,
-                                            name = response.user?.name,
-                                            email = response.user?.email,
-                                            id = response.user?.user_id
-                                        )
-                                        navController.navigate("home") {
-                                            popUpTo("login") { inclusive = true }
-                                        }
-                                    } else {
-                                        errorMessage = response.message
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
                                     }
-                                } catch (e: HttpException) {
-                                    errorMessage = "Correo o contraseña incorrectos."
-                                } catch (e: Exception) {
-                                    errorMessage = "Error de conexión con el servidor alpino."
-                                } finally {
-                                    isLoading = false
+                                } else {
+                                    Toast.makeText(context, response.message, Toast.LENGTH_SHORT).show()
                                 }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            } finally {
+                                isLoading.value = false
                             }
                         }
                     }
