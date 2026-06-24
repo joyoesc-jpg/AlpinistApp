@@ -3,6 +3,7 @@ package com.example.alpinistapp.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,9 @@ import com.example.alpinistapp.network.RetrofitClient
 import com.example.alpinistapp.components.GradientButton
 import com.example.alpinistapp.components.MapPreview
 import com.example.alpinistapp.components.CreateExpeditionDialog
+import com.example.alpinistapp.components.CreateReviewDialog
+import com.example.alpinistapp.components.ReviewCard
+import com.example.alpinistapp.network.models.ReviewResponse
 import com.example.alpinistapp.network.models.TrailDetailResponse
 import kotlinx.coroutines.launch
 
@@ -37,12 +41,17 @@ fun TrailScreen(
     val scope = rememberCoroutineScope()
 
     var trail by remember { mutableStateOf<TrailDetailResponse?>(null) }
+    var reviews by remember { mutableStateOf<List<ReviewResponse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showReviewDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(trailId) {
         try {
-            trail = RetrofitClient.api.getTrail(trailId)
+            val trailResponse = RetrofitClient.api.getTrail(trailId)
+            val reviewsResponse = RetrofitClient.api.getTrailReviews(trailId)
+            trail = trailResponse
+            reviews = reviewsResponse
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
@@ -187,7 +196,7 @@ fun TrailScreen(
                         HorizontalDivider(color = Color.White.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Próximas expediciones",
+                            text = "Opciones",
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
@@ -203,7 +212,17 @@ fun TrailScreen(
 
                         GradientButton(
                             text = "Ver todas las expediciones",
-                            onClick = { /* TODO */ }
+                            onClick = {
+                                navController.navigate("search?query=${currentTrail.name}&type=Expeditions")
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        GradientButton(
+                            text = "Descargar mapa",
+                            onClick = {
+                            }
                         )
                     }
                 }
@@ -223,12 +242,28 @@ fun TrailScreen(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            TextButton(onClick = { /* TODO */ }) {
+                            TextButton(onClick = { showReviewDialog = true }) {
                                 Text(text = "Añadir reseña", color = Color(0xffff9b3d))
-                              }
+                            }
                         }
                     }
                 }
+
+                if (reviews.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No hay reseñas aún.",
+                            color = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    items(reviews) { review ->
+                        ReviewCard(review = review)
+                    }
+                }
+
                 item { Spacer(modifier = Modifier.height(32.dp)) }
             }
 
@@ -243,8 +278,6 @@ fun TrailScreen(
                                 try {
                                     RetrofitClient.api.createExpedition(request)
                                     showCreateDialog = false
-                                    // Refresh or Navigate? 
-                                    // For now, just close.
                                 } catch (e: Exception) {
                                     e.printStackTrace()
                                 }
@@ -252,8 +285,29 @@ fun TrailScreen(
                         }
                     )
                 } ?: run {
-                    // Optional: Show a message that user needs to be logged in
                     showCreateDialog = false
+                }
+            }
+            
+            if (showReviewDialog) {
+                userId?.let { uid ->
+                    CreateReviewDialog(
+                        registrationId = 1,
+                        onDismiss = { showReviewDialog = false },
+                        onCreate = { request ->
+                            scope.launch {
+                                try {
+                                    RetrofitClient.api.createReview(request)
+                                    showReviewDialog = false
+                                    reviews = RetrofitClient.api.getTrailReviews(trailId)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
+                    )
+                } ?: run {
+                    showReviewDialog = false
                 }
             }
         }

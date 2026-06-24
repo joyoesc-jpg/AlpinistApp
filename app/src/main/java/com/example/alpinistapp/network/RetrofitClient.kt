@@ -7,7 +7,7 @@ import com.example.alpinistapp.ApiService
 
 object RetrofitClient {
 
-    private const val BASE_URL =
+    const val BASE_URL =
         "https://alpinist-backend.onrender.com/"
 
     val api: ApiService by lazy {

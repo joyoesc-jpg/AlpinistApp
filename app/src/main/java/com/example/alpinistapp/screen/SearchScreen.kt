@@ -29,10 +29,14 @@ enum class SearchType { Trails, Expeditions }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(navController: NavController) {
-    var searchQuery by remember { mutableStateOf("") }
+fun SearchScreen(
+    navController: NavController,
+    initialQuery: String? = null,
+    initialType: SearchType = SearchType.Trails
+) {
+    var searchQuery by remember { mutableStateOf(initialQuery ?: "") }
     var selectedDifficulty by remember { mutableStateOf("Todas") }
-    var searchType by remember { mutableStateOf(SearchType.Trails) }
+    var searchType by remember { mutableStateOf(initialType) }
 
     // Data from Network
     var allTrails by remember { mutableStateOf(listOf<TrailCardResponse>()) }

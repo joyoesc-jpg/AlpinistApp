@@ -36,6 +36,10 @@ class SessionManager(private val context: Context) {
         preferences[USER_NAME]
     }
 
+    val userEmail: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[USER_EMAIL]
+    }
+
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[IS_LOGGED_IN] ?: false
     }

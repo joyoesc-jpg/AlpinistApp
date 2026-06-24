@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
 
         val tileStore = TileStore.create()
         val capacidadBytes = 200L * 1024L * 1024L
-        tileStore.setOption("disk-capacity", Value(capacidadBytes))
+        tileStore.setOption("disk-capacity", Value.valueOf(capacidadBytes))
 
         enableEdgeToEdge()
         setContent {
@@ -51,7 +51,6 @@ fun AppNavigation() {
     val sessionManager = remember { SessionManager(context) }
     val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = null)
 
-    // Wait for session status to be loaded to avoid flicker
     if (isLoggedIn == null) return
 
     Scaffold{ innerPadding ->
@@ -63,7 +62,33 @@ fun AppNavigation() {
             composable("login") { LoginScreen(navController) }
             composable("register") { RegisterScreen(navController) }
             composable("home") { HomeScreen(navController) }
-            composable("search") { SearchScreen(navController) }
+
+            composable(
+                route = "search?query={query}&type={type}",
+                arguments = listOf(
+                    navArgument("query") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("type") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = "Trails"
+                    }
+                )
+            ) { backStackEntry ->
+                val query = backStackEntry.arguments?.getString("query")
+                val typeStr = backStackEntry.arguments?.getString("type") ?: "Trails"
+                val type = try { SearchType.valueOf(typeStr) } catch(e: Exception) { SearchType.Trails }
+
+                SearchScreen(
+                    navController = navController,
+                    initialQuery = query,
+                    initialType = type
+                )
+            }
+
             composable("profile") { ProfileScreen(navController) }
             composable("settings") { SettingsScreen(navController) }
             composable("expedition") { ActiveExpedition(navController) }
@@ -102,7 +127,9 @@ fun AppNavigation() {
             }
         }
     }
-    if (currentRouteName != "login" && currentRouteName != "register" && currentRouteName != null) {
+    if (currentRouteName?.startsWith("login") == false &&
+        currentRouteName?.startsWith("register") == false &&
+        currentRouteName != null) {
         ExpandableFab(navController)
     }
 

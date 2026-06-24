@@ -14,19 +14,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.alpinistapp.SessionManager
 import com.example.alpinistapp.components.GradientButton
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(navController: NavController) {
-    // Hardcoded user data
-    val userName = "Usuario Alpinista"
-    val userEmail = "alpinista@example.com"
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val userName by sessionManager.userName.collectAsState(initial = "Cargando...")
+    val userEmail by sessionManager.userEmail.collectAsState(initial = "Cargando...")
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -79,30 +84,29 @@ fun ProfileScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = userName,
+            text = userName ?: "Usuario",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF173963)
         )
 
         Text(
-            text = userEmail,
+            text = userEmail ?: "",
             fontSize = 16.sp,
             color = Color.Gray
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        ProfileInfoItem(label = "Miembro desde", value = "Enero 2024")
-        ProfileInfoItem(label = "Expediciones", value = "12 completadas")
 
         Spacer(modifier = Modifier.weight(1f))
 
         GradientButton(
             text = "Cerrar Sesión",
             onClick = {
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
+                scope.launch {
+                    sessionManager.clearSession()
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 }
             }
         )
